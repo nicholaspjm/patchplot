@@ -1,0 +1,1033 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
+<title>Patchplot</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg0:#ffffff; --bg1:#f6f6f1; --bg2:#efefe9; --bg3:#e7e7e0;
+    --line:#d9d9d2; --ink:#1d1f23; --muted:#6f7378; --faint:#a0a3a8;
+    --accent:#3b55c4; --accent-dim:#b9c4ea; --danger:#c0392b; --ok:#3f7d2c;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+    --sans:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  html,body{height:100%;}
+  body{margin:0;background:var(--bg0);color:var(--ink);font-family:var(--sans);font-size:14px;overflow:hidden;}
+  button{font-family:var(--mono);font-size:12px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:2px;padding:5px 10px;cursor:pointer;}
+  button:hover{background:var(--bg3);}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  button[aria-pressed="true"]{border-color:var(--accent-dim);color:var(--accent);background:#eef1fa;}
+  button.primary{border-color:var(--accent-dim);color:var(--accent);}
+  button.danger{color:var(--danger);border-color:#e0b6ae;}
+  input,select,textarea{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--bg0);border:1px solid var(--line);border-radius:2px;padding:5px 7px;box-sizing:border-box;}
+  input[type=number]{width:100%;}
+  label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 3px;}
+
+  #app{display:flex;flex-direction:column;height:100vh;}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 14px;min-height:34px;background:var(--bg1);border-bottom:1px solid var(--line);flex:none;}
+  .wordmark{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.22em;color:var(--ink);white-space:nowrap;}
+  #venue{width:130px;text-transform:uppercase;letter-spacing:.06em;}
+  #plantabs{display:flex;gap:4px;align-items:center;flex:1;min-width:0;overflow-x:auto;}
+  #plantabs .tab{white-space:nowrap;}
+  #plantabs .tab.active{border-color:var(--accent-dim);color:var(--accent);background:#eef1fa;}
+  .hgroup{display:flex;gap:6px;align-items:center;}
+
+  main{display:flex;flex:1;min-height:0;}
+  #palette{width:96px;flex:none;background:var(--bg1);border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;padding:10px 8px;overflow-y:auto;}
+  #palette .phead{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;text-align:center;margin-bottom:2px;}
+  .padd{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;}
+  .padd svg{display:block;}
+  .padd span{font-family:var(--mono);font-size:9px;letter-spacing:.05em;color:var(--muted);}
+  .padd:hover span{color:var(--ink);}
+  #palette .pfoot{margin-top:auto;font-family:var(--mono);font-size:9px;color:var(--faint);text-align:center;line-height:1.5;}
+
+  #canvaswrap{flex:1;min-width:0;background:var(--bg0);display:flex;align-items:stretch;justify-content:center;padding:14px;overflow:auto;}
+  #plot{width:100%;height:100%;touch-action:none;user-select:none;}
+
+  #inspector{width:300px;flex:none;background:var(--bg1);border-left:1px solid var(--line);padding:14px 16px 20px;overflow-y:auto;}
+  #inspector h2{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin:0 0 4px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .btnrow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  #insRange{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;}
+  #insRange b{color:var(--ink);font-weight:500;}
+  #insRange .bad{color:var(--danger);}
+  .help{font-family:var(--mono);font-size:10px;color:var(--faint);line-height:1.7;margin-top:18px;border-top:1px solid var(--line);padding-top:10px;}
+  .help b{color:var(--muted);font-weight:500;}
+
+  #drawer{flex:none;height:250px;background:var(--bg1);border-top:1px solid var(--line);display:none;flex-direction:column;}
+  #drawer.open{display:flex;}
+  #drawerbar{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+  #drawerbar .spacer{flex:1;}
+  #unisum{display:flex;gap:6px;font-family:var(--mono);font-size:10px;flex-wrap:wrap;}
+  .uchip{border:1px solid var(--line);border-radius:3px;padding:2px 7px;color:var(--muted);}
+  #patchtablewrap{flex:1;overflow:auto;}
+  table{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:11px;}
+  th{position:sticky;top:0;background:var(--bg1);text-align:left;font-weight:500;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--line);}
+  td{padding:4px 10px;border-bottom:1px solid #ecece6;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  tr.sel td{background:#eef1fa;}
+  tr.conflict td{color:var(--danger);}
+  tr:hover td{background:var(--bg2);cursor:pointer;}
+  td.mut{color:var(--muted);}
+
+  #toasts{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:60;align-items:center;}
+  .toast{background:var(--bg0);border:1px solid var(--line);border-radius:3px;padding:9px 14px;font-family:var(--mono);font-size:12px;display:flex;gap:12px;align-items:center;box-shadow:0 4px 18px rgba(20,22,26,.14);}
+  .toast button{padding:3px 9px;}
+
+  #modal{position:fixed;inset:0;background:rgba(30,32,36,.35);display:none;align-items:center;justify-content:center;z-index:70;}
+  #modal.open{display:flex;}
+  #modalbox{background:var(--bg0);border:1px solid var(--line);border-radius:3px;padding:18px;width:min(680px,92vw);display:flex;flex-direction:column;gap:12px;max-height:84vh;box-shadow:0 8px 32px rgba(20,22,26,.16);}
+  #modalbox h3{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;}
+  #modaltext{width:100%;height:280px;resize:vertical;font-size:11px;line-height:1.5;white-space:pre;}
+  #modalhint{font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+  #chip{min-width:110px;text-align:center;}
+  #chip.saved{color:var(--ok);border-color:#b7d1a8;}
+  #chip.dirty{color:var(--accent);border-color:var(--accent-dim);}
+  #chip.err{color:var(--danger);border-color:#ddb0a8;}
+  #robanner{display:none;background:#f8ecd7;border-bottom:1px solid #dcbf8a;color:#7a5a12;font-family:var(--mono);font-size:11px;padding:5px 14px;letter-spacing:.05em;}
+
+  #exportmenu{position:absolute;top:calc(100% + 4px);right:0;background:var(--bg0);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;min-width:150px;z-index:55;box-shadow:0 4px 18px rgba(20,22,26,.14);padding:4px;}
+  #exportmenu button{border:none;text-align:left;background:transparent;padding:6px 9px;}
+  #exportmenu button:hover{background:var(--bg2);}
+  #exportmenu[hidden]{display:none;}
+  #inspector input,#inspector select,#inspector textarea{width:100%;}
+  @media (max-width:1100px){ #inspector{width:250px;} #palette{width:84px;} }
+  @media (max-width:860px){
+    #plantabs{order:9;flex-basis:100%;}
+    #exportmenu{left:0;right:auto;}
+    main{flex-direction:column;overflow-y:auto;}
+    #palette{width:100%;flex-direction:row;overflow-x:auto;overflow-y:hidden;border-right:none;border-bottom:1px solid var(--line);padding:6px 8px;}
+    #palette .phead,#palette .pfoot{display:none;}
+    .padd{flex:none;}
+    #canvaswrap{flex:none;height:50vh;min-height:320px;}
+    #inspector{width:100%;border-left:none;border-top:1px solid var(--line);}
+    #drawer{height:220px;}
+  }
+  @media (prefers-reduced-motion: no-preference){ .toast{animation:tin .18s ease-out;} @keyframes tin{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}} }
+</style>
+
+<div id="app">
+  <header>
+    <span class="wordmark">PATCHPLOT</span>
+    <input id="venue" title="Venue name" spellcheck="false">
+    <div id="plantabs"></div>
+    <div class="hgroup">
+      <button id="btnNewPlan" title="New empty plan">+ plan</button>
+      <button id="btnDupPlan" title="Duplicate current plan">duplicate</button>
+    </div>
+    <div class="hgroup">
+      <button id="tGrid" aria-pressed="true">grid</button>
+      <button id="tLabels" aria-pressed="true">labels</button>
+      <button id="tPatch" aria-pressed="true">patch</button>
+      <button id="tDrawer" aria-pressed="false">patch list</button>
+    </div>
+    <div class="hgroup" style="position:relative;">
+      <button id="btnExportMenu">export</button>
+      <div id="exportmenu" hidden>
+        <button data-x="csv">patch list csv</button>
+        <button data-x="svg">plot svg</button>
+        <button data-x="json">project json</button>
+        <button data-x="import">import json</button>
+      </div>
+    </div>
+    <button id="chip" class="primary" title="Save (Ctrl+S)">Save</button>
+  </header>
+  <div id="robanner">READ-ONLY VIEW · you can look around and export, but changes here will not be saved</div>
+  <main>
+    <aside id="palette"></aside>
+    <section id="canvaswrap"><svg id="plot" preserveAspectRatio="xMidYMid meet"></svg></section>
+    <aside id="inspector">
+      <section id="insFixture" hidden>
+        <h2>Fixture</h2>
+        <label>Label</label><input id="fLabel" spellcheck="false">
+        <label>Type</label><select id="fType"></select>
+        <div class="row3">
+          <div><label>X m</label><input id="fX" type="number" step="0.1"></div>
+          <div><label>Y m</label><input id="fY" type="number" step="0.1"></div>
+          <div><label>Rot &#176;</label><input id="fRot" type="number" step="5"></div>
+        </div>
+        <div class="row3">
+          <div><label>Universe</label><input id="fUni" type="number" min="0" step="1" placeholder="-"></div>
+          <div><label>Address</label><input id="fAddr" type="number" min="1" max="512" step="1" placeholder="-"></div>
+          <div><label>Chans</label><input id="fFp" type="number" min="0" max="512" step="1"></div>
+        </div>
+        <label>Art-Net node</label><input id="fNode" spellcheck="false" placeholder="e.g. Node A / 2.0.0.10">
+        <label>Note</label><input id="fNote" spellcheck="false">
+        <div id="insRange"></div>
+        <div class="btnrow">
+          <button id="fDup">duplicate</button>
+          <button id="fDel" class="danger">delete</button>
+        </div>
+      </section>
+      <section id="insZone" hidden>
+        <h2>Zone</h2>
+        <label>Name</label><input id="zName" spellcheck="false">
+        <div class="row2">
+          <div><label>X m</label><input id="zX" type="number" step="0.1"></div>
+          <div><label>Y m</label><input id="zY" type="number" step="0.1"></div>
+        </div>
+        <div class="row2">
+          <div><label>W m</label><input id="zW" type="number" step="0.1" min="0.5"></div>
+          <div><label>H m</label><input id="zH" type="number" step="0.1" min="0.5"></div>
+        </div>
+        <div class="btnrow"><button id="zDel" class="danger">delete</button></div>
+      </section>
+      <section id="insWire" hidden>
+        <h2>Wire</h2>
+        <div id="wEnds" style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;"></div>
+        <label>Type</label><select id="wKind"><option value="cable">Cable</option><option value="wireless">Wireless</option></select>
+        <label>Note</label><input id="wNote" spellcheck="false" placeholder="e.g. CRMX, 5-pin, power">
+        <div class="btnrow"><button id="wDel" class="danger">delete</button></div>
+      </section>
+      <section id="insPlan">
+        <h2>Plan</h2>
+        <label>Plan name</label><input id="pName" spellcheck="false">
+        <div class="row2">
+          <div><label>Room W m</label><input id="pW" type="number" step="0.5" min="2"></div>
+          <div><label>Room D m</label><input id="pH" type="number" step="0.5" min="2"></div>
+        </div>
+        <label>Plan notes</label><textarea id="pNotes" rows="3" style="width:100%;resize:vertical;"></textarea>
+        <div class="btnrow">
+          <button id="pAddZone">+ zone</button>
+          <button id="pDelPlan" class="danger">delete plan</button>
+        </div>
+        <div class="help">
+          <b>Click</b> a fixture to select, <b>drag</b> to move.<br>
+          <b>Arrows</b> nudge 0.1 m (Shift 0.5)<br>
+          <b>R</b> rotate 15&#176; (Shift-R back)<br>
+          <b>Ctrl+D</b> duplicate · <b>Del</b> delete<br>
+          <b>Ctrl+S</b> save · <b>Esc</b> deselect<br>
+          <b>Wire tool</b>: click fixtures one<br>
+          after another to chain, Esc stops.<br>
+          Fixture colour = node + universe.<br>
+          Red ring = patch overlap.
+        </div>
+      </section>
+    </aside>
+  </main>
+  <section id="drawer">
+    <div id="drawerbar">
+      <div id="unisum"></div>
+      <div class="spacer"></div>
+      <button id="btnAutopatch" title="Re-address every patched fixture sequentially per universe">auto-patch</button>
+      <button id="btnCsv">export csv</button>
+      <button id="btnSvg">export svg</button>
+      <button id="btnJson">export json</button>
+      <button id="btnImport">import json</button>
+    </div>
+    <div id="patchtablewrap"><table id="patchtable"></table></div>
+  </section>
+</div>
+
+<div id="toasts"></div>
+<div id="modal"><div id="modalbox">
+  <h3 id="modaltitle"></h3>
+  <div id="modalhint"></div>
+  <textarea id="modaltext" spellcheck="false"></textarea>
+  <div class="btnrow" style="margin-top:0;">
+    <button id="modalPrimary" class="primary"></button>
+    <button id="modalClose">close</button>
+  </div>
+</div></div>
+
+<script type="application/json" id="plotstate">{"v":1,"savedAt":0,"venue":"VENUE","seq":40,"plans":[{"id":"p1","name":"Plan A","notes":"Seeded from the hand sketch. Triangles came in as pars, lines as beam bars, boxes as lasers.","room":{"w":16,"h":10},"zones":[{"id":"z1","name":"DJ BOOTH","x":6,"y":0,"w":4.2,"h":1.6},{"id":"z2","name":"STAGE","x":0,"y":8,"w":4.1,"h":2},{"id":"z3","name":"RISER L","x":1.4,"y":1.4,"w":1.6,"h":1},{"id":"z4","name":"RISER R","x":12.9,"y":1.6,"w":1.7,"h":1}],"wires":[{"id":"w1","a":"f12","b":"f13","kind":"cable","note":""},{"id":"w2","a":"f13","b":"f14","kind":"cable","note":""},{"id":"w3","a":"f5","b":"f10","kind":"wireless","note":"CRMX"}],"fixtures":[
+{"id":"f1","type":"par","label":"PAR 1","x":2.5,"y":0.9,"rot":180,"uni":1,"addr":1,"fp":8,"node":"Node A","note":""},
+{"id":"f2","type":"par","label":"PAR 2","x":6.6,"y":0.85,"rot":180,"uni":1,"addr":9,"fp":8,"node":"Node A","note":"booth"},
+{"id":"f3","type":"par","label":"PAR 3","x":7.8,"y":0.75,"rot":180,"uni":1,"addr":17,"fp":8,"node":"Node A","note":"booth"},
+{"id":"f4","type":"par","label":"PAR 4","x":9.4,"y":0.75,"rot":180,"uni":1,"addr":25,"fp":8,"node":"Node A","note":"booth"},
+{"id":"f5","type":"par","label":"PAR 5","x":13.7,"y":1.5,"rot":180,"uni":1,"addr":33,"fp":8,"node":"Node A","note":""},
+{"id":"f6","type":"par","label":"PAR 6","x":4.7,"y":4.9,"rot":0,"uni":1,"addr":41,"fp":8,"node":"Node A","note":""},
+{"id":"f7","type":"par","label":"PAR 7","x":4.5,"y":6.6,"rot":0,"uni":1,"addr":49,"fp":8,"node":"Node A","note":""},
+{"id":"f8","type":"par","label":"PAR 8","x":10,"y":5.3,"rot":0,"uni":1,"addr":57,"fp":8,"node":"Node A","note":""},
+{"id":"f9","type":"par","label":"PAR 9","x":9.9,"y":6.9,"rot":0,"uni":1,"addr":65,"fp":8,"node":"Node A","note":""},
+{"id":"f10","type":"par","label":"PAR 10","x":0.8,"y":9.2,"rot":0,"uni":1,"addr":73,"fp":8,"node":"Node A","note":"stage"},
+{"id":"f11","type":"bar","label":"BAR 1","x":8.05,"y":1.45,"rot":0,"uni":2,"addr":1,"fp":24,"node":"Node A","note":"booth"},
+{"id":"f12","type":"bar","label":"BAR 2","x":2.9,"y":3.9,"rot":0,"uni":2,"addr":25,"fp":24,"node":"Node A","note":""},
+{"id":"f13","type":"bar","label":"BAR 3","x":2.8,"y":5.8,"rot":0,"uni":2,"addr":49,"fp":24,"node":"Node A","note":""},
+{"id":"f14","type":"bar","label":"BAR 4","x":2.7,"y":7.4,"rot":0,"uni":2,"addr":73,"fp":24,"node":"Node A","note":""},
+{"id":"f15","type":"bar","label":"BAR 5","x":7.7,"y":4,"rot":0,"uni":2,"addr":97,"fp":24,"node":"Node A","note":""},
+{"id":"f16","type":"bar","label":"BAR 6","x":7.8,"y":5.8,"rot":0,"uni":2,"addr":121,"fp":24,"node":"Node A","note":""},
+{"id":"f17","type":"bar","label":"BAR 7","x":7.7,"y":7.4,"rot":0,"uni":2,"addr":145,"fp":24,"node":"Node A","note":""},
+{"id":"f18","type":"bar","label":"BAR 8","x":12.4,"y":4.1,"rot":0,"uni":2,"addr":169,"fp":24,"node":"Node A","note":""},
+{"id":"f19","type":"bar","label":"BAR 9","x":12.2,"y":5.7,"rot":0,"uni":2,"addr":193,"fp":24,"node":"Node A","note":""},
+{"id":"f20","type":"bar","label":"BAR 10","x":12.1,"y":7.2,"rot":0,"uni":2,"addr":217,"fp":24,"node":"Node A","note":""},
+{"id":"f21","type":"laser","label":"LASER 1","x":2.2,"y":1.9,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"ILDA"},
+{"id":"f22","type":"laser","label":"LASER 2","x":13.7,"y":2.1,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"ILDA"},
+{"id":"f23","type":"laser","label":"LASER 3","x":15.2,"y":1.2,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"ILDA"}
+]}]}</script>
+
+<script>
+"use strict";
+/* ================= constants ================= */
+const S = 60;                 // px per metre
+const M = 40;                 // canvas margin px
+const STRIP = 80;             // legend + title block strip height px
+const LS_STATE = "patchplot-state";
+const LS_PREFS = "patchplot-prefs";
+
+const TYPES = {
+  par:     {name:"Par",         tag:"PAR",   fp:8},
+  spot:    {name:"Spot / Beam", tag:"SPOT",  fp:16},
+  wash:    {name:"Wash",        tag:"WASH",  fp:16},
+  bar:     {name:"Beam Bar",    tag:"BAR",   fp:24},
+  blinder: {name:"Blinder",     tag:"BLND",  fp:4},
+  atomic:  {name:"Atomic",      tag:"ATOM",  fp:154},
+  laser:   {name:"Laser",       tag:"LASER", fp:0},
+};
+const TYPE_ORDER = ["par","spot","wash","bar","blinder","atomic","laser"];
+
+const SCREEN = {
+  bg:"#fdfdfb", glyph:"#ffffff", ink:"#1d1f23", muted:"#6f7378",
+  faint:"#a0a3a8", grid:"#eaeae2", wall:"#2c2f33", zone:"#9a9da3", zonefill:"rgba(29,31,35,0.02)",
+  accent:"#3b55c4", danger:"#c0392b",
+  unis:["#b3661f","#14778c","#a03e93","#4a7d1f","#6a4bc0","#bd4f33"], unpatched:"#9a9da3",
+};
+const PRINT = {
+  bg:"#ffffff", glyph:"#ffffff", ink:"#16181b", muted:"#5b6470",
+  faint:"#9aa0a8", grid:"#ececec", wall:"#2c2f33", zone:"#8d949e", zonefill:"none",
+  accent:"#3b55c4", danger:"#c0392b",
+  unis:["#b3661f","#14778c","#a03e93","#4a7d1f","#6a4bc0","#bd4f33"], unpatched:"#8d949e",
+};
+
+/* ================= state ================= */
+let state = null;
+let planIdx = 0;
+let sel = null;               // {kind:"fixture"|"zone", id}
+let dirty = false;
+let saveTimer = null;
+let saveAttempts = 0;
+let mode = {readonly:false, local:false};
+let wireMode = false, wireStart = null, wirePreview = null;
+let cap = {artifact:undefined, downloads:undefined};
+let prefs = {grid:true, labels:true, patch:true, drawer:false};
+let lastDeleted = null;
+
+try{ const p = JSON.parse(localStorage.getItem(LS_PREFS)); if(p) prefs = Object.assign(prefs, p); }catch(e){}
+
+const $ = id => document.getElementById(id);
+const plan = () => state.plans[planIdx];
+const pad3 = n => String(n).padStart(3,"0");
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const patchKey = f => (f.node||"").trim()+"|"+f.uni;
+function colorMap(p){
+  const groups = [];
+  for(const f of p.fixtures){ if(f.uni==null) continue; const k = patchKey(f);
+    if(!groups.some(g=>g.k===k)) groups.push({k, node:(f.node||"").trim(), uni:f.uni}); }
+  groups.sort((a,b)=> a.node.localeCompare(b.node) || (a.uni-b.uni));
+  const m = {}; groups.forEach((g,i)=> m[g.k]=i); return m;
+}
+const fxColor = (P,f,cm) => f.uni==null ? P.unpatched : P.unis[cm[patchKey(f)]%P.unis.length];
+const round1 = v => Math.round(v*10)/10;
+
+function readEmbedded(){
+  try{ return JSON.parse($("plotstate").textContent); }catch(e){ return null; }
+}
+function migrate(s){
+  if(!s || !Array.isArray(s.plans) || !s.plans.length) return null;
+  s.v = s.v||1; s.savedAt = s.savedAt||0; s.venue = s.venue||"VENUE"; s.seq = s.seq||100;
+  for(const p of s.plans){
+    p.zones = p.zones||[]; p.fixtures = p.fixtures||[]; p.wires = p.wires||[]; p.notes = p.notes||"";
+    p.room = p.room||{w:16,h:10};
+    for(const f of p.fixtures){ if(!TYPES[f.type]) f.type="par"; f.rot=f.rot||0; f.fp=(f.fp==null?TYPES[f.type].fp:f.fp); }
+  }
+  return s;
+}
+
+/* ================= glyphs ================= */
+function glyphSvg(type, col, P){
+  const gf = P.glyph;
+  switch(type){
+    case "par": return '<path d="M0 -15 L14 11 L-14 11 Z" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2" stroke-linejoin="round"/>'
+      +'<circle cx="0" cy="3" r="4.5" fill="none" stroke="'+col+'" stroke-width="0.9"/>';
+    case "spot": return '<line x1="-17" y1="-7" x2="-17" y2="7" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<line x1="17" y1="-7" x2="17" y2="7" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<circle r="12" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<path d="M-5 -10 L0 -18 L5 -10" fill="none" stroke="'+col+'" stroke-width="1.2" stroke-linejoin="round"/>';
+    case "wash": { let r='<circle r="12" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/><circle r="6" fill="none" stroke="'+col+'" stroke-width="0.8" opacity="0.7"/>';
+      for(let i=0;i<4;i++){const a=(45+i*90)*Math.PI/180, c=Math.cos(a), s2=Math.sin(a);
+        r+='<line x1="'+(c*14).toFixed(1)+'" y1="'+(s2*14).toFixed(1)+'" x2="'+(c*19).toFixed(1)+'" y2="'+(s2*19).toFixed(1)+'" stroke="'+col+'" stroke-width="1"/>';}
+      return r; }
+    case "bar": { let r='<rect x="-36" y="-7" width="72" height="14" rx="1" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>';
+      for(let i=1;i<8;i++){const x=-36+i*9; r+='<line x1="'+x+'" y1="-7" x2="'+x+'" y2="7" stroke="'+col+'" stroke-width="0.7" opacity="0.45"/>';}
+      return r; }
+    case "blinder": { let r='<rect x="-14" y="-14" width="28" height="28" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<line x1="0" y1="-14" x2="0" y2="14" stroke="'+col+'" stroke-width="0.7" opacity="0.5"/>'
+      +'<line x1="-14" y1="0" x2="14" y2="0" stroke="'+col+'" stroke-width="0.7" opacity="0.5"/>';
+      for(const dx of [-7,7]) for(const dy of [-7,7]) r+='<circle cx="'+dx+'" cy="'+dy+'" r="3.5" fill="none" stroke="'+col+'" stroke-width="0.9"/>';
+      return r; }
+    case "atomic": { let r='<rect x="-24" y="-11" width="48" height="22" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<line x1="-18" y1="0" x2="18" y2="0" stroke="'+col+'" stroke-width="1.2" opacity="0.75"/>';
+      for(const x of [-18,18]) r+='<line x1="'+x+'" y1="-5" x2="'+x+'" y2="5" stroke="'+col+'" stroke-width="1" opacity="0.7"/>';
+      return r; }
+    case "laser": return '<rect x="-11" y="-11" width="22" height="22" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<line x1="0" y1="-11" x2="-10" y2="-24" stroke="'+col+'" stroke-width="1"/>'
+      +'<line x1="0" y1="-11" x2="0" y2="-26" stroke="'+col+'" stroke-width="1"/>'
+      +'<line x1="0" y1="-11" x2="10" y2="-24" stroke="'+col+'" stroke-width="1"/>';
+  }
+  return "";
+}
+const LABEL_Y = {par:28, spot:28, wash:28, bar:26, blinder:30, atomic:28, laser:28};
+const HALO_R  = {par:24, spot:26, wash:26, bar:42, blinder:26, atomic:32, laser:24};
+
+/* ================= patch maths ================= */
+function fxRange(f){ if(f.uni==null || f.addr==null) return null; return [f.addr, f.addr + Math.max(f.fp,1) - 1]; }
+function conflicts(p){
+  const map = {}; const by = {};
+  for(const f of p.fixtures){ const r = fxRange(f); if(!r) continue;
+    if(r[1] > 512 || r[0] < 1){ map[f.id]="overflow"; }
+    const k = patchKey(f);
+    (by[k] = by[k]||[]).push({f, r});
+  }
+  for(const u in by){ const list = by[u];
+    for(let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++){
+      if(list[i].r[0] <= list[j].r[1] && list[j].r[0] <= list[i].r[1]){ map[list[i].f.id]=map[list[i].f.id]||"overlap"; map[list[j].f.id]=map[list[j].f.id]||"overlap"; }
+    }
+  }
+  return map;
+}
+function uniSummary(p){
+  const by = {};
+  for(const f of p.fixtures){ const r = fxRange(f); if(!r) continue;
+    const k = patchKey(f);
+    const s = by[k] = by[k]||{k, node:(f.node||"").trim(), uni:f.uni, ch:0, top:0, n:0};
+    s.ch += Math.max(f.fp,1); s.top = Math.max(s.top, r[1]); s.n++;
+  }
+  return Object.values(by).sort((a,b)=> a.node.localeCompare(b.node) || (a.uni-b.uni));
+}
+
+/* ================= canvas render ================= */
+function patchText(f){
+  if(f.uni==null || f.addr==null) return "unpatched";
+  const r = fxRange(f);
+  let t = "U"+f.uni+" · "+pad3(r[0])+(f.fp>1 ? "-"+pad3(r[1]) : "");
+  if(f.node) t += "  "+f.node;
+  return t;
+}
+
+function buildWorld(p, P, opts){
+  const W = p.room.w*S + M*2, H = p.room.h*S + M*2 + STRIP;
+  const conf = conflicts(p);
+  const cm = colorMap(p);
+  let s = '<g font-family="\'IBM Plex Mono\',ui-monospace,monospace">';
+  s += '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="'+P.bg+'"/>';
+  // grid + edge dimension figures
+  if(opts.grid){
+    for(let x=0;x<=p.room.w;x++) s+='<line x1="'+(M+x*S)+'" y1="'+M+'" x2="'+(M+x*S)+'" y2="'+(M+p.room.h*S)+'" stroke="'+P.grid+'" stroke-width="0.75"/>';
+    for(let y=0;y<=p.room.h;y++) s+='<line x1="'+M+'" y1="'+(M+y*S)+'" x2="'+(M+p.room.w*S)+'" y2="'+(M+y*S)+'" stroke="'+P.grid+'" stroke-width="0.75"/>';
+    for(let x=0;x<=p.room.w;x+=2) s+='<text x="'+(M+x*S)+'" y="'+(M-12)+'" text-anchor="middle" font-size="8" fill="'+P.faint+'">'+x+'</text>';
+    for(let y=0;y<=p.room.h;y+=2) s+='<text x="'+(M-14)+'" y="'+(M+y*S+3)+'" text-anchor="end" font-size="8" fill="'+P.faint+'">'+y+'</text>';
+  }
+  // walls, drafted as a double line
+  s += '<rect x="'+(M-5)+'" y="'+(M-5)+'" width="'+(p.room.w*S+10)+'" height="'+(p.room.h*S+10)+'" fill="none" stroke="'+P.wall+'" stroke-width="0.8"/>';
+  s += '<rect x="'+M+'" y="'+M+'" width="'+(p.room.w*S)+'" height="'+(p.room.h*S)+'" fill="none" stroke="'+P.wall+'" stroke-width="1.4"/>';
+  // zones
+  for(const z of p.zones){
+    const zx=M+z.x*S, zy=M+z.y*S, zw=z.w*S, zh=z.h*S;
+    const isSel = sel && sel.kind==="zone" && sel.id===z.id && opts.interactive;
+    s += '<g data-zid="'+z.id+'" style="cursor:move;">'
+      +'<rect x="'+zx+'" y="'+zy+'" width="'+zw+'" height="'+zh+'" fill="'+P.zonefill+'" stroke="'+(isSel?P.accent:P.zone)+'" stroke-width="1" stroke-dasharray="5 4"/>'
+      +'<text x="'+(zx+7)+'" y="'+(zy+15)+'" font-size="10" letter-spacing="1.5" fill="'+(isSel?P.accent:P.faint)+'">'+esc(z.name)+'</text>';
+    if(isSel) s += '<rect data-handle="'+z.id+'" x="'+(zx+zw-6)+'" y="'+(zy+zh-6)+'" width="12" height="12" fill="'+P.accent+'" style="cursor:nwse-resize;"/>';
+    s += '</g>';
+  }
+  // wires (under the fixtures)
+  const fxById = {}; for(const f of p.fixtures) fxById[f.id]=f;
+  for(const w of p.wires){
+    const a = fxById[w.a], b = fxById[w.b]; if(!a||!b) continue;
+    const ax=M+a.x*S, ay=M+a.y*S, bx=M+b.x*S, by2=M+b.y*S;
+    const isSelW = sel && sel.kind==="wire" && sel.id===w.id && opts.interactive;
+    const wcol = isSelW ? P.accent : P.muted;
+    const dash = w.kind==="wireless" ? ' stroke-dasharray="2 5"' : '';
+    s += '<g data-wid="'+w.id+'" style="cursor:pointer;">'
+      +'<line x1="'+ax+'" y1="'+ay+'" x2="'+bx+'" y2="'+by2+'" stroke="'+wcol+'" stroke-width="'+(isSelW?1.4:0.9)+'" opacity="0.85"'+dash+'/>'
+      +'<line x1="'+ax+'" y1="'+ay+'" x2="'+bx+'" y2="'+by2+'" stroke="rgba(0,0,0,0)" stroke-width="10"/>';
+    if(w.kind==="wireless"){
+      const mx=(ax+bx)/2, my=(ay+by2)/2;
+      s += '<g transform="translate('+mx.toFixed(1)+' '+my.toFixed(1)+')">'
+        +'<circle r="1.2" fill="'+wcol+'"/>'
+        +'<path d="M-4 -3 A 5 5 0 0 1 4 -3" fill="none" stroke="'+wcol+'" stroke-width="0.9"/>'
+        +'<path d="M-7 -5 A 8.6 8.6 0 0 1 7 -5" fill="none" stroke="'+wcol+'" stroke-width="0.9"/></g>';
+    }
+    s += '</g>';
+  }
+  if(opts.interactive && wireMode && wireStart && wirePreview){
+    const a = fxById[wireStart];
+    if(a) s += '<line x1="'+(M+a.x*S)+'" y1="'+(M+a.y*S)+'" x2="'+(M+wirePreview.x*S).toFixed(1)+'" y2="'+(M+wirePreview.y*S).toFixed(1)+'" stroke="'+P.accent+'" stroke-width="1" stroke-dasharray="4 3" opacity="0.8"/>';
+  }
+  // fixtures
+  for(const f of p.fixtures){
+    const px=M+f.x*S, py=M+f.y*S;
+    const col = fxColor(P, f, cm);
+    const isSel = sel && sel.kind==="fixture" && sel.id===f.id && opts.interactive;
+    s += '<g data-fid="'+f.id+'" transform="translate('+px.toFixed(1)+' '+py.toFixed(1)+')" style="cursor:'+(opts.interactive&&wireMode?"crosshair":"move")+';">';
+    if(opts.interactive && wireMode && wireStart===f.id) s += '<circle r="'+HALO_R[f.type]+'" fill="none" stroke="'+P.accent+'" stroke-width="1.2"/>';
+    if(isSel) s += '<circle r="'+HALO_R[f.type]+'" fill="none" stroke="'+P.accent+'" stroke-width="1" stroke-dasharray="4 3"/>';
+    if(conf[f.id]) s += '<circle r="'+(HALO_R[f.type]-3)+'" fill="none" stroke="'+P.danger+'" stroke-width="1.2" opacity="0.9"/>';
+    s += '<g transform="rotate('+(f.rot||0)+')">'+glyphSvg(f.type, col, P)+'</g>';
+    let ty = LABEL_Y[f.type];
+    if(opts.labels){ s += '<text y="'+ty+'" text-anchor="middle" font-size="11" fill="'+P.ink+'">'+esc(f.label)+'</text>'; ty += 12; }
+    if(opts.patch){ s += '<text y="'+ty+'" text-anchor="middle" font-size="9.5" fill="'+(conf[f.id]?P.danger:col)+'">'+esc(patchText(f))+'</text>'; }
+    s += '</g>';
+  }
+  // bottom strip: legend + title block
+  const sy = M + p.room.h*S + 22;
+  let lx = M;
+  s += '<g transform="translate(0 '+sy+')">';
+  for(const t of TYPE_ORDER){
+    s += '<g transform="translate('+(lx+16)+' 14) scale(0.5)">'+glyphSvg(t, P.muted, P)+'</g>'
+      +'<text x="'+(lx+34)+'" y="18" font-size="9" fill="'+P.muted+'">'+esc(TYPES[t].name)+'</text>';
+    lx += 40 + TYPES[t].name.length*6.2;
+  }
+  const tbw = 250, tbx = W - M - tbw;
+  const nfx = p.fixtures.length, unis = uniSummary(p).length;
+  const dateStr = state.savedAt ? new Date(state.savedAt).toISOString().slice(0,10) : "unsaved";
+  s += '<g>'
+    +'<rect x="'+tbx+'" y="-4" width="'+tbw+'" height="52" fill="none" stroke="'+P.zone+'" stroke-width="0.8"/>'
+    +'<line x1="'+(tbx+92)+'" y1="-4" x2="'+(tbx+92)+'" y2="48" stroke="'+P.zone+'" stroke-width="0.8"/>'
+    +'<text x="'+(tbx+10)+'" y="14" font-size="11" font-weight="600" letter-spacing="2" fill="'+P.ink+'">PATCHPLOT</text>'
+    +'<text x="'+(tbx+10)+'" y="32" font-size="9" fill="'+P.muted+'">'+esc(dateStr)+'</text>'
+    +'<text x="'+(tbx+102)+'" y="14" font-size="11" fill="'+P.ink+'">'+esc(state.venue)+' · '+esc(p.name)+'</text>'
+    +'<text x="'+(tbx+102)+'" y="32" font-size="9" fill="'+P.muted+'">'+nfx+' fixtures · '+unis+' universes · grid 1 m</text>'
+    +'</g></g></g>';
+  return {inner:s, w:W, h:H};
+}
+
+const plot = $("plot");
+function renderCanvas(){
+  const b = buildWorld(plan(), SCREEN, {grid:prefs.grid, labels:prefs.labels, patch:prefs.patch, interactive:true});
+  plot.setAttribute("viewBox","0 0 "+b.w+" "+b.h);
+  plot.innerHTML = b.inner;
+  plot.style.cursor = wireMode ? "crosshair" : "";
+}
+
+/* ================= inspector ================= */
+function renderInspector(){
+  const p = plan();
+  const fSec=$("insFixture"), zSec=$("insZone"), wSec=$("insWire"), pSec=$("insPlan");
+  fSec.hidden = zSec.hidden = wSec.hidden = pSec.hidden = true;
+  if(sel && sel.kind==="fixture"){
+    const f = p.fixtures.find(x=>x.id===sel.id); if(!f){ sel=null; return renderInspector(); }
+    fSec.hidden = false;
+    $("fLabel").value=f.label; $("fType").value=f.type;
+    $("fX").value=f.x; $("fY").value=f.y; $("fRot").value=f.rot||0;
+    $("fUni").value=f.uni==null?"":f.uni; $("fAddr").value=f.addr==null?"":f.addr; $("fFp").value=f.fp;
+    $("fNode").value=f.node||""; $("fNote").value=f.note||"";
+    updateRange(f);
+  } else if(sel && sel.kind==="zone"){
+    const z = p.zones.find(x=>x.id===sel.id); if(!z){ sel=null; return renderInspector(); }
+    zSec.hidden = false;
+    $("zName").value=z.name; $("zX").value=z.x; $("zY").value=z.y; $("zW").value=z.w; $("zH").value=z.h;
+  } else if(sel && sel.kind==="wire"){
+    const w = p.wires.find(x=>x.id===sel.id); if(!w){ sel=null; return renderInspector(); }
+    wSec.hidden = false;
+    const fa = p.fixtures.find(f=>f.id===w.a), fb = p.fixtures.find(f=>f.id===w.b);
+    $("wEnds").textContent = (fa?fa.label:"?")+"  to  "+(fb?fb.label:"?");
+    $("wKind").value = w.kind||"cable"; $("wNote").value = w.note||"";
+  } else {
+    pSec.hidden = false;
+    $("pName").value=p.name; $("pW").value=p.room.w; $("pH").value=p.room.h; $("pNotes").value=p.notes||"";
+  }
+}
+function updateRange(f){
+  const r = fxRange(f); const el = $("insRange");
+  if(!r){ el.innerHTML = 'Unpatched. Set a universe and address.'; return; }
+  const conf = conflicts(plan())[f.id];
+  el.innerHTML = 'Occupies <b>'+(f.node?esc(f.node)+' ':'')+'U'+f.uni+' : '+pad3(r[0])+' to '+pad3(r[1])+'</b>'
+    + (conf==="overflow" ? ' <span class="bad">outside 1-512</span>' : conf==="overlap" ? ' <span class="bad">overlaps another fixture</span>' : '');
+}
+function syncSelInputs(f){
+  if(document.activeElement!==$("fX")) $("fX").value = f.x;
+  if(document.activeElement!==$("fY")) $("fY").value = f.y;
+}
+
+/* ================= patch drawer ================= */
+function renderDrawer(){
+  if(!prefs.drawer) return;
+  const p = plan(); const conf = conflicts(p);
+  const rows = p.fixtures.slice().sort((a,b)=>{
+    const ra=fxRange(a), rb=fxRange(b);
+    if(ra&&rb) return ((a.node||"").localeCompare(b.node||"")) || (a.uni-b.uni) || (a.addr-b.addr) || a.label.localeCompare(b.label);
+    if(ra) return -1; if(rb) return 1;
+    return a.label.localeCompare(b.label);
+  });
+  let h = '<thead><tr><th>Fixture</th><th>Type</th><th>Uni</th><th>Addr</th><th>Chans</th><th>Node</th><th>Pos m</th><th>Note</th></tr></thead><tbody>';
+  for(const f of rows){
+    const r = fxRange(f);
+    h += '<tr data-fid="'+f.id+'" class="'+(conf[f.id]?"conflict ":"")+(sel&&sel.kind==="fixture"&&sel.id===f.id?"sel":"")+'">'
+      +'<td>'+esc(f.label)+'</td><td class="mut">'+esc(TYPES[f.type].name)+'</td>'
+      +'<td>'+(f.uni==null?'<span class="mut">-</span>':f.uni)+'</td>'
+      +'<td>'+(r?pad3(r[0])+(f.fp>1?'-'+pad3(r[1]):''):'<span class="mut">-</span>')+(conf[f.id]?' ⚠':'')+'</td>'
+      +'<td>'+f.fp+'</td><td class="mut">'+esc(f.node||"-")+'</td>'
+      +'<td class="mut">'+round1(f.x)+', '+round1(f.y)+'</td><td class="mut">'+esc(f.note||"")+'</td></tr>';
+  }
+  $("patchtable").innerHTML = h + "</tbody>";
+  const cm = colorMap(p);
+  const sum = uniSummary(p);
+  $("unisum").innerHTML = sum.map(u=>{
+    const c = SCREEN.unis[cm[u.k]%SCREEN.unis.length];
+    return '<span class="uchip" style="color:'+c+';border-color:'+c+'44;">'+(u.node?esc(u.node)+' · ':'')+'U'+u.uni+' · '+u.n+' fx · top '+pad3(u.top)+'</span>';
+  }).join("") || '<span class="uchip">nothing patched yet</span>';
+}
+
+/* ================= plan tabs & palette ================= */
+function renderTabs(){
+  $("plantabs").innerHTML = state.plans.map((p,i)=>
+    '<button class="tab'+(i===planIdx?" active":"")+'" data-plan="'+i+'">'+esc(p.name)+'</button>').join("");
+}
+function renderPalette(){
+  let h = '<div class="phead">add</div>';
+  for(const t of TYPE_ORDER){
+    h += '<button class="padd" data-add="'+t+'" title="Add '+esc(TYPES[t].name)+'">'
+      +'<svg width="56" height="34" viewBox="-42 -22 84 44">'+glyphSvg(t, SCREEN.muted, SCREEN)+'</svg>'
+      +'<span>'+esc(TYPES[t].name)+'</span></button>';
+  }
+  h += '<div class="phead" style="margin-top:8px;">tools</div>';
+  h += '<button class="padd" id="wiretool" aria-pressed="'+wireMode+'" title="Draw wires: click fixtures one after another to chain them, Esc to stop">'
+    +'<svg width="56" height="26" viewBox="-28 -13 56 26"><path d="M-20 7 C -8 7 -10 -7 6 -7 L 20 -7" fill="none" stroke="'+SCREEN.muted+'" stroke-width="1.2"/><circle cx="-20" cy="7" r="2.4" fill="none" stroke="'+SCREEN.muted+'" stroke-width="1.2"/><circle cx="20" cy="-7" r="2.4" fill="none" stroke="'+SCREEN.muted+'" stroke-width="1.2"/></svg>'
+    +'<span>Wire</span></button>';
+  h += '<div class="pfoot">click to add<br>at room centre</div>';
+  $("palette").innerHTML = h;
+}
+
+function renderAll(){ renderTabs(); renderCanvas(); renderInspector(); renderDrawer(); }
+
+/* ================= mutations ================= */
+function markDirty(){
+  dirty = true; setChip("dirty");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ if(dirty) doSave(); }, 3000);
+}
+function setWireMode(on){
+  wireMode = on; wireStart = null; wirePreview = null;
+  const t = document.getElementById("wiretool");
+  if(t) t.setAttribute("aria-pressed", String(on));
+  renderCanvas();
+}
+function addWire(a, b){
+  const p = plan();
+  if(p.wires.some(w=> (w.a===a&&w.b===b)||(w.a===b&&w.b===a))){ toast("Those two are already wired"); return; }
+  p.wires.push({id:"w"+(++state.seq), a, b, kind:"cable", note:""});
+  markDirty(); renderCanvas();
+}
+function addFixture(type){
+  const p = plan();
+  const n = p.fixtures.filter(f=>f.type===type).length + 1;
+  const f = {id:"f"+(++state.seq), type, label:TYPES[type].tag+" "+n, x:round1(p.room.w/2), y:round1(p.room.h/2),
+             rot:0, uni:null, addr:null, fp:TYPES[type].fp, node:"", note:""};
+  p.fixtures.push(f);
+  sel = {kind:"fixture", id:f.id};
+  markDirty(); renderAll();
+}
+function duplicateFixture(f){
+  const p = plan();
+  const c = JSON.parse(JSON.stringify(f));
+  c.id = "f"+(++state.seq); c.label = f.label+" copy"; c.x = round1(f.x+0.6); c.y = round1(f.y+0.6);
+  if(c.addr!=null) c.addr = Math.min(512, c.addr + Math.max(c.fp,1));
+  p.fixtures.push(c);
+  sel = {kind:"fixture", id:c.id};
+  markDirty(); renderAll();
+}
+function deleteSelected(){
+  const p = plan();
+  if(sel && sel.kind==="fixture"){
+    const i = p.fixtures.findIndex(f=>f.id===sel.id); if(i<0) return;
+    lastDeleted = {planId:p.id, kind:"fixture", item:p.fixtures[i], index:i,
+                   wires:p.wires.filter(w=>w.a===sel.id||w.b===sel.id)};
+    p.wires = p.wires.filter(w=>w.a!==sel.id&&w.b!==sel.id);
+    p.fixtures.splice(i,1);
+  } else if(sel && sel.kind==="wire"){
+    const i = p.wires.findIndex(w=>w.id===sel.id); if(i<0) return;
+    lastDeleted = {planId:p.id, kind:"wire", item:p.wires[i], index:i};
+    p.wires.splice(i,1);
+  } else if(sel && sel.kind==="zone"){
+    const i = p.zones.findIndex(z=>z.id===sel.id); if(i<0) return;
+    lastDeleted = {planId:p.id, kind:"zone", item:p.zones[i], index:i};
+    p.zones.splice(i,1);
+  } else return;
+  sel = null; markDirty(); renderAll();
+  toast("Deleted "+esc(lastDeleted.item.label||lastDeleted.item.name||"wire"), {label:"undo", fn:()=>{
+    const tp = state.plans.find(x=>x.id===lastDeleted.planId); if(!tp) return;
+    const arr = lastDeleted.kind==="fixture" ? tp.fixtures : lastDeleted.kind==="wire" ? tp.wires : tp.zones;
+    arr.splice(lastDeleted.index,0,lastDeleted.item);
+    if(lastDeleted.wires) tp.wires.push(...lastDeleted.wires);
+    lastDeleted = null; markDirty(); renderAll();
+  }});
+}
+function autoPatch(){
+  const p = plan();
+  const by = {};
+  for(const f of p.fixtures){ if(f.uni==null) continue; const k=patchKey(f); (by[k]=by[k]||[]).push(f); }
+  for(const u in by){
+    by[u].sort((a,b)=>((a.addr==null?9999:a.addr)-(b.addr==null?9999:b.addr)) || a.label.localeCompare(b.label));
+    let cur = 1;
+    for(const f of by[u]){ f.addr = cur; cur += Math.max(f.fp,1); }
+  }
+  markDirty(); renderAll();
+  toast("Re-addressed every patched fixture sequentially per node and universe");
+}
+
+/* ================= drag ================= */
+let drag = null;
+function svgPoint(e){
+  const m = plot.getScreenCTM(); if(!m) return {x:0,y:0};
+  const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+  return {x:(pt.x-M)/S, y:(pt.y-M)/S};
+}
+plot.addEventListener("pointerdown", e=>{
+  const fEl = e.target.closest("[data-fid]");
+  const hEl = e.target.closest("[data-handle]");
+  const zEl = e.target.closest("[data-zid]");
+  const wEl = e.target.closest("[data-wid]");
+  const pt = svgPoint(e);
+  if(wireMode){
+    if(fEl){
+      const fid = fEl.getAttribute("data-fid");
+      if(!wireStart){ wireStart = fid; }
+      else if(wireStart !== fid){ addWire(wireStart, fid); wireStart = fid; }
+    } else { wireStart = null; wirePreview = null; }
+    renderCanvas();
+    e.preventDefault();
+    return;
+  }
+  if(hEl){
+    const z = plan().zones.find(z=>z.id===hEl.getAttribute("data-handle"));
+    drag = {kind:"resize", z, moved:false};
+  } else if(fEl){
+    const f = plan().fixtures.find(f=>f.id===fEl.getAttribute("data-fid"));
+    sel = {kind:"fixture", id:f.id};
+    drag = {kind:"fixture", f, dx:f.x-pt.x, dy:f.y-pt.y, moved:false};
+    renderCanvas(); renderInspector(); renderDrawer();
+  } else if(zEl){
+    const z = plan().zones.find(z=>z.id===zEl.getAttribute("data-zid"));
+    sel = {kind:"zone", id:z.id};
+    drag = {kind:"zone", z, dx:z.x-pt.x, dy:z.y-pt.y, moved:false};
+    renderCanvas(); renderInspector();
+  } else if(wEl){
+    sel = {kind:"wire", id:wEl.getAttribute("data-wid")};
+    renderCanvas(); renderInspector();
+    return;
+  } else {
+    if(sel){ sel = null; renderCanvas(); renderInspector(); renderDrawer(); }
+    return;
+  }
+  plot.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+plot.addEventListener("pointermove", e=>{
+  if(wireMode && wireStart){ wirePreview = svgPoint(e); requestAnimationFrame(renderCanvas); return; }
+  if(!drag) return;
+  const p = plan(), pt = svgPoint(e);
+  const snap = v => Math.round(v*10)/10;
+  if(drag.kind==="fixture"){
+    drag.f.x = snap(Math.min(Math.max(pt.x+drag.dx,0), p.room.w));
+    drag.f.y = snap(Math.min(Math.max(pt.y+drag.dy,0), p.room.h));
+    syncSelInputs(drag.f);
+  } else if(drag.kind==="zone"){
+    drag.z.x = snap(Math.min(Math.max(pt.x+drag.dx, -2), p.room.w));
+    drag.z.y = snap(Math.min(Math.max(pt.y+drag.dy, -2), p.room.h));
+    if(document.activeElement!==$("zX")) $("zX").value = drag.z.x;
+    if(document.activeElement!==$("zY")) $("zY").value = drag.z.y;
+  } else if(drag.kind==="resize"){
+    drag.z.w = snap(Math.max(pt.x - drag.z.x, 1));
+    drag.z.h = snap(Math.max(pt.y - drag.z.y, 0.6));
+    $("zW").value = drag.z.w; $("zH").value = drag.z.h;
+  }
+  drag.moved = true;
+  requestAnimationFrame(renderCanvas);
+});
+function endDrag(){
+  if(drag && drag.moved){ markDirty(); renderDrawer(); }
+  drag = null;
+}
+plot.addEventListener("pointerup", endDrag);
+plot.addEventListener("pointercancel", endDrag);
+
+/* ================= inputs ================= */
+function numOrNull(v){ const n = parseInt(v,10); return isNaN(n)?null:n; }
+function bindFixtureInputs(){
+  const get = ()=> plan().fixtures.find(f=>f.id===(sel&&sel.id));
+  $("fLabel").addEventListener("input", ()=>{ const f=get(); if(f){ f.label=$("fLabel").value; markDirty(); renderCanvas(); renderDrawer(); }});
+  $("fType").addEventListener("change", ()=>{ const f=get(); if(f){ const old=f.type; f.type=$("fType").value;
+    if(f.fp===TYPES[old].fp){ f.fp=TYPES[f.type].fp; $("fFp").value=f.fp; }
+    markDirty(); renderCanvas(); renderDrawer(); updateRange(f); }});
+  for(const [id,key] of [["fX","x"],["fY","y"],["fRot","rot"]])
+    $(id).addEventListener("input", ()=>{ const f=get(); if(f){ const v=parseFloat($(id).value); if(!isNaN(v)){ f[key]=v; markDirty(); renderCanvas(); }}});
+  for(const [id,key] of [["fUni","uni"],["fAddr","addr"]])
+    $(id).addEventListener("input", ()=>{ const f=get(); if(f){ f[key]=numOrNull($(id).value); if(f.uni!=null&&f.addr==null&&key==="uni"){f.addr=1;$("fAddr").value=1;} markDirty(); renderCanvas(); renderDrawer(); updateRange(f); }});
+  $("fFp").addEventListener("input", ()=>{ const f=get(); if(f){ const v=numOrNull($("fFp").value); if(v!=null){ f.fp=v; markDirty(); renderCanvas(); renderDrawer(); updateRange(f); }}});
+  $("fNode").addEventListener("input", ()=>{ const f=get(); if(f){ f.node=$("fNode").value; markDirty(); renderCanvas(); renderDrawer(); }});
+  $("fNote").addEventListener("input", ()=>{ const f=get(); if(f){ f.note=$("fNote").value; markDirty(); renderDrawer(); }});
+  $("fDup").addEventListener("click", ()=>{ const f=get(); if(f) duplicateFixture(f); });
+  $("fDel").addEventListener("click", deleteSelected);
+}
+function bindZoneInputs(){
+  const get = ()=> plan().zones.find(z=>z.id===(sel&&sel.id));
+  $("zName").addEventListener("input", ()=>{ const z=get(); if(z){ z.name=$("zName").value; markDirty(); renderCanvas(); }});
+  for(const [id,key] of [["zX","x"],["zY","y"],["zW","w"],["zH","h"]])
+    $(id).addEventListener("input", ()=>{ const z=get(); if(z){ const v=parseFloat($(id).value); if(!isNaN(v)){ z[key]=v; markDirty(); renderCanvas(); }}});
+  $("zDel").addEventListener("click", deleteSelected);
+}
+function bindWireInputs(){
+  const get = ()=> plan().wires.find(w=>w.id===(sel&&sel.id));
+  $("wKind").addEventListener("change", ()=>{ const w=get(); if(w){ w.kind=$("wKind").value; markDirty(); renderCanvas(); }});
+  $("wNote").addEventListener("input", ()=>{ const w=get(); if(w){ w.note=$("wNote").value; markDirty(); }});
+  $("wDel").addEventListener("click", deleteSelected);
+}
+function bindPlanInputs(){
+  $("pName").addEventListener("input", ()=>{ plan().name=$("pName").value||"Plan"; markDirty(); renderTabs(); renderCanvas(); });
+  $("pW").addEventListener("input", ()=>{ const v=parseFloat($("pW").value); if(!isNaN(v)&&v>=2){ plan().room.w=v; markDirty(); renderCanvas(); }});
+  $("pH").addEventListener("input", ()=>{ const v=parseFloat($("pH").value); if(!isNaN(v)&&v>=2){ plan().room.h=v; markDirty(); renderCanvas(); }});
+  $("pNotes").addEventListener("input", ()=>{ plan().notes=$("pNotes").value; markDirty(); });
+  $("pAddZone").addEventListener("click", ()=>{
+    const p = plan();
+    const z = {id:"z"+(++state.seq), name:"ZONE", x:round1(p.room.w/2-2), y:round1(p.room.h/2-1), w:4, h:2};
+    p.zones.push(z); sel={kind:"zone",id:z.id}; markDirty(); renderAll();
+  });
+  let armDel = false;
+  $("pDelPlan").addEventListener("click", ()=>{
+    if(state.plans.length<2){ toast("Cannot delete the only plan"); return; }
+    if(!armDel){ armDel=true; $("pDelPlan").textContent="really delete?"; setTimeout(()=>{armDel=false;$("pDelPlan").textContent="delete plan";},2500); return; }
+    state.plans.splice(planIdx,1); planIdx=Math.max(0,planIdx-1); sel=null; armDel=false;
+    $("pDelPlan").textContent="delete plan"; markDirty(); renderAll();
+  });
+}
+$("venue").addEventListener("input", ()=>{ state.venue=$("venue").value; markDirty(); renderCanvas(); });
+
+$("plantabs").addEventListener("click", e=>{
+  const b = e.target.closest("[data-plan]"); if(!b) return;
+  planIdx = +b.getAttribute("data-plan"); sel=null; wireStart=null; wirePreview=null; savePrefs(); renderAll();
+});
+$("btnNewPlan").addEventListener("click", ()=>{
+  state.plans.push({id:"p"+(++state.seq), name:"Plan "+String.fromCharCode(65+state.plans.length), notes:"",
+    room:{w:16,h:10}, zones:[], fixtures:[]});
+  planIdx = state.plans.length-1; sel=null; wireStart=null; wirePreview=null; markDirty(); renderAll();
+});
+$("btnDupPlan").addEventListener("click", ()=>{
+  const c = JSON.parse(JSON.stringify(plan()));
+  c.id = "p"+(++state.seq); c.name = plan().name+" copy";
+  state.plans.splice(planIdx+1,0,c); planIdx++; sel=null; wireStart=null; wirePreview=null; markDirty(); renderAll();
+});
+$("palette").addEventListener("click", e=>{
+  if(e.target.closest("#wiretool")){ setWireMode(!wireMode); return; }
+  const b = e.target.closest("[data-add]"); if(b){ setWireMode(false); addFixture(b.getAttribute("data-add")); }
+});
+$("patchtable").addEventListener("click", e=>{
+  const tr = e.target.closest("[data-fid]"); if(!tr) return;
+  sel = {kind:"fixture", id:tr.getAttribute("data-fid")};
+  renderCanvas(); renderInspector(); renderDrawer();
+});
+
+/* toggles */
+function savePrefs(){ try{ localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); }catch(e){} }
+function bindToggle(id, key, after){
+  $(id).setAttribute("aria-pressed", String(prefs[key]));
+  $(id).addEventListener("click", ()=>{
+    prefs[key] = !prefs[key];
+    $(id).setAttribute("aria-pressed", String(prefs[key]));
+    savePrefs(); after();
+  });
+}
+bindToggle("tGrid","grid",renderCanvas);
+bindToggle("tLabels","labels",renderCanvas);
+bindToggle("tPatch","patch",renderCanvas);
+bindToggle("tDrawer","drawer",()=>{ $("drawer").classList.toggle("open", prefs.drawer); renderDrawer(); });
+
+/* keyboard */
+window.addEventListener("keydown", e=>{
+  const t = e.target;
+  if(t && (t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||t.isContentEditable)){
+    if(e.key==="Escape") t.blur();
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){ e.preventDefault(); doSave(); }
+    return;
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){ e.preventDefault(); doSave(); return; }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="d"){ e.preventDefault();
+    const f = sel&&sel.kind==="fixture" && plan().fixtures.find(f=>f.id===sel.id); if(f) duplicateFixture(f); return; }
+  if(e.key==="Escape"){ if($("modal").classList.contains("open")) closeModal(); else if(wireMode){ setWireMode(false); } else { sel=null; renderCanvas(); renderInspector(); renderDrawer(); } return; }
+  if(e.key==="Delete"||e.key==="Backspace"){ e.preventDefault(); deleteSelected(); return; }
+  const f = sel&&sel.kind==="fixture" && plan().fixtures.find(f=>f.id===sel.id);
+  if(f){
+    const step = e.shiftKey?0.5:0.1;
+    if(e.key==="ArrowLeft"){ f.x=round1(f.x-step); } else if(e.key==="ArrowRight"){ f.x=round1(f.x+step); }
+    else if(e.key==="ArrowUp"){ f.y=round1(f.y-step); } else if(e.key==="ArrowDown"){ f.y=round1(f.y+step); }
+    else if(e.key==="r"){ f.rot=((f.rot||0)+15)%360; }
+    else if(e.key==="R"){ f.rot=((f.rot||0)-15+360)%360; }
+    else return;
+    e.preventDefault(); markDirty(); renderCanvas(); syncSelInputs(f); $("fRot").value=f.rot;
+  }
+});
+window.addEventListener("beforeunload", e=>{ if(dirty && !mode.readonly){ e.preventDefault(); e.returnValue=""; } });
+
+/* ================= toast & modal ================= */
+function toast(msg, action){
+  const d = document.createElement("div"); d.className="toast";
+  d.innerHTML = "<span>"+msg+"</span>";
+  if(action){ const b=document.createElement("button"); b.textContent=action.label; b.onclick=()=>{action.fn(); d.remove();}; d.appendChild(b); }
+  $("toasts").appendChild(d);
+  setTimeout(()=>d.remove(), action?10000:5500);
+}
+let modalAction = null;
+function openModal(title, hint, text, primaryLabel, fn, readonlyText){
+  $("modaltitle").textContent = title; $("modalhint").textContent = hint;
+  $("modaltext").value = text; $("modaltext").readOnly = !!readonlyText;
+  $("modalPrimary").textContent = primaryLabel; modalAction = fn;
+  $("modal").classList.add("open");
+  if(readonlyText){ $("modaltext").focus(); $("modaltext").select(); }
+}
+function closeModal(){ $("modal").classList.remove("open"); modalAction=null; }
+$("modalClose").addEventListener("click", closeModal);
+$("modalPrimary").addEventListener("click", ()=>{ if(modalAction) modalAction($("modaltext").value); });
+$("modal").addEventListener("pointerdown", e=>{ if(e.target===$("modal")) closeModal(); });
+
+/* ================= export / import ================= */
+async function offerFile(filename, data){
+  if(cap.downloads){
+    try{ await cap.downloads.save({filename, data}); toast("Saved "+esc(filename)); return; }
+    catch(err){
+      if(err && err.code==="declined") return;
+      if(err && err.code==="rate_limited"){ toast("A download prompt is already open"); return; }
+    }
+  }
+  openModal(filename, "Downloads are unavailable in this view. Copy the text below and save it as "+filename+".", data, "select all",
+    ()=>{ $("modaltext").focus(); $("modaltext").select(); }, true);
+}
+function csvEsc(v){ v=String(v==null?"":v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function exportCsv(){
+  const p = plan();
+  const rows = [["Label","Type","Universe","Address","Channels","End","Node","X_m","Y_m","Rot_deg","Note"]];
+  for(const f of p.fixtures){ const r=fxRange(f);
+    rows.push([f.label, TYPES[f.type].name, f.uni==null?"":f.uni, f.addr==null?"":f.addr, f.fp, r?r[1]:"", f.node||"", f.x, f.y, f.rot||0, f.note||""]); }
+  offerFile((state.venue+"-"+p.name+"-patch").replace(/[^\w-]+/g,"_")+".csv", rows.map(r=>r.map(csvEsc).join(",")).join("\n"));
+}
+function exportJson(){
+  offerFile("patchplot-"+state.venue.replace(/[^\w-]+/g,"_")+".json", JSON.stringify(state, null, 2));
+}
+function exportSvg(){
+  const b = buildWorld(plan(), PRINT, {grid:true, labels:true, patch:true, interactive:false});
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+b.w+' '+b.h+'" width="'+b.w+'" height="'+b.h+'">'+b.inner+'</svg>';
+  offerFile((state.venue+"-"+plan().name+"-plot").replace(/[^\w-]+/g,"_")+".svg", svg);
+}
+function openImport(){
+  openModal("Import JSON", "Paste a Patchplot JSON export. It replaces everything currently here (all plans).", "", "import", txt=>{
+    try{
+      const s = migrate(JSON.parse(txt));
+      if(!s) throw new Error("bad");
+      state = s; planIdx = 0; sel = null;
+      closeModal(); markDirty(); bootUi();
+    }catch(err){ toast("Could not read that JSON"); }
+  });
+}
+$("btnCsv").addEventListener("click", exportCsv);
+$("btnJson").addEventListener("click", exportJson);
+$("btnSvg").addEventListener("click", exportSvg);
+$("btnImport").addEventListener("click", openImport);
+$("btnExportMenu").addEventListener("click", e=>{ e.stopPropagation(); $("exportmenu").hidden = !$("exportmenu").hidden; });
+$("exportmenu").addEventListener("click", e=>{
+  const b = e.target.closest("[data-x]"); if(!b) return;
+  $("exportmenu").hidden = true;
+  ({csv:exportCsv, svg:exportSvg, json:exportJson, import:openImport})[b.getAttribute("data-x")]();
+});
+document.addEventListener("click", e=>{ if(!e.target.closest("#btnExportMenu")) $("exportmenu").hidden = true; });
+$("btnAutopatch").addEventListener("click", autoPatch);
+
+/* ================= persistence ================= */
+function setChip(kind){
+  const c = $("chip");
+  c.classList.remove("saved","dirty","err");
+  if(kind==="saved"){ c.classList.add("saved"); c.textContent="Saved"; }
+  else if(kind==="dirty"){ c.classList.add("dirty"); c.textContent="Save ●"; }
+  else if(kind==="saving"){ c.textContent="Saving…"; }
+  else if(kind==="readonly"){ c.classList.add("err"); c.textContent="Read-only"; }
+  else if(kind==="local"){ c.classList.add("dirty"); c.textContent="Local only"; }
+  else if(kind==="error"){ c.classList.add("err"); c.textContent="Save failed"; }
+  else { c.textContent="Save"; }
+}
+$("chip").addEventListener("click", ()=>doSave());
+
+async function doSave(){
+  if(mode.readonly) return;
+  clearTimeout(saveTimer);
+  state.savedAt = Date.now();
+  const json = JSON.stringify(state);
+  try{ localStorage.setItem(LS_STATE, json); }catch(e){}
+  if(cap.artifact===undefined){ setChip("saving"); setTimeout(doSave, 1500); return; }
+  if(cap.artifact===null || mode.local){ dirty=false; setChip("local"); return; }
+  setChip("saving");
+  try{
+    await cap.artifact.publish({"plot-state.json": json});
+    dirty = false; saveAttempts = 0; setChip("saved");
+  }catch(err){ handleSaveError(err, json); }
+}
+async function handleSaveError(err, json){
+  const code = err && err.code;
+  if(code==="conflict"){ toast("Someone saved a newer version. Loading it."); return; }
+  if(code==="not_writer" || code==="not_granted" || code==="consent_required"){
+    mode.readonly = true; setChip("readonly"); $("robanner").style.display="block"; return;
+  }
+  if(code==="capability_disabled" || code==="capability_removed" || code==="read_only_path"){
+    // fall back to republishing the whole page with state embedded
+    try{
+      const res = await fetch(location.pathname, {cache:"no-store"});
+      if(!res.ok) throw new Error("fetch");
+      const src = await res.text();
+      const re = /(<script type="application\/json" id="plotstate">)[\s\S]*?(<\/script>)/;
+      if(!re.test(src)) throw new Error("tag");
+      const html = src.replace(re, (m,a,b)=> a + json.replace(/</g,"\\u003c") + b);
+      await cap.artifact.publish(html);   // on success this view reloads
+      dirty = false; setChip("saved");
+    }catch(err2){
+      const c2 = err2 && err2.code;
+      if(c2==="conflict"){ toast("Someone saved a newer version. Loading it."); return; }
+      if(c2==="not_writer" || c2==="not_granted"){ mode.readonly=true; setChip("readonly"); $("robanner").style.display="block"; return; }
+      mode.local = true; dirty = false; setChip("local");
+      toast("Saving to the shared artifact is unavailable here. Kept a copy in this browser only.");
+    }
+    return;
+  }
+  if(code==="too_large"){ setChip("error"); toast("The plot is too large to save"); return; }
+  if(code==="rate_limited"){ setChip("dirty"); saveTimer=setTimeout(doSave, 12000); return; }
+  saveAttempts++;
+  if(saveAttempts<=3){ setChip("dirty"); saveTimer=setTimeout(doSave, 4000+Math.random()*4000); }
+  else { setChip("error"); toast("Save keeps failing. Use export json to keep your work."); }
+}
+
+/* ================= boot ================= */
+function bootUi(){
+  $("venue").value = state.venue;
+  $("drawer").classList.toggle("open", prefs.drawer);
+  renderPalette(); renderAll();
+}
+async function loadState(){
+  let fetched = null;
+  try{
+    const r = await fetch("plot-state.json", {cache:"no-store"});
+    if(r.ok) fetched = migrate(await r.json());
+  }catch(e){}
+  const embedded = migrate(readEmbedded());
+  if(fetched && embedded) state = (fetched.savedAt >= embedded.savedAt) ? fetched : embedded;
+  else state = fetched || embedded;
+  if(!state) state = {v:1,savedAt:0,venue:"VENUE",seq:1,plans:[{id:"p1",name:"Plan A",notes:"",room:{w:16,h:10},zones:[],fixtures:[]}]};
+}
+(async ()=>{
+  await loadState();
+  // fill type select once
+  $("fType").innerHTML = TYPE_ORDER.map(t=>'<option value="'+t+'">'+esc(TYPES[t].name)+'</option>').join("");
+  bindFixtureInputs(); bindZoneInputs(); bindWireInputs(); bindPlanInputs();
+  bootUi();
+})();
+(async ()=>{
+  const use = (window.claude && window.claude.use) ? window.claude.use.bind(window.claude) : null;
+  if(!use){ cap.artifact=null; cap.downloads=null; mode.local=true; setChip("local"); return; }
+  try{ cap.artifact = await use("artifact"); }catch(e){ cap.artifact = null; }
+  if(cap.artifact===null){
+    mode.local = true; setChip("local");
+    try{
+      const ls = migrate(JSON.parse(localStorage.getItem(LS_STATE)));
+      if(ls && state && ls.savedAt > state.savedAt){ state = ls; bootUi(); toast("Loaded a newer local copy from this browser"); }
+    }catch(e){}
+  }
+  try{ cap.downloads = await use("downloads"); }catch(e){ cap.downloads = null; }
+})();
+</script>
+
+</body></html>
