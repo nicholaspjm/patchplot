@@ -152,6 +152,19 @@
           <div><label>Address</label><input id="fAddr" type="number" min="1" max="512" step="1" placeholder="-"></div>
           <div><label>Chans</label><input id="fFp" type="number" min="0" max="512" step="1"></div>
         </div>
+        <div id="fInstall" hidden>
+          <label>Shape</label><select id="fShape">
+            <option value="circle">Circle</option><option value="rect">Rectangle</option><option value="star">Star</option>
+          </select>
+          <div class="row2">
+            <div><label>W m</label><input id="fSw" type="number" step="0.1" min="0.2"></div>
+            <div><label>H m</label><input id="fSh" type="number" step="0.1" min="0.2"></div>
+          </div>
+          <label>Colour</label><select id="fTint">
+            <option value="">Neutral</option><option value="0">Ochre</option><option value="1">Teal</option>
+            <option value="2">Magenta</option><option value="3">Olive</option><option value="4">Violet</option><option value="5">Sienna</option>
+          </select>
+        </div>
         <label>Art-Net node</label><input id="fNode" spellcheck="false" placeholder="e.g. Node A / 2.0.0.10">
         <label>Note</label><input id="fNote" spellcheck="false">
         <div id="insRange"></div>
@@ -232,7 +245,7 @@
   </div>
 </div></div>
 
-<script type="application/json" id="plotstate">{"v":1,"savedAt":0,"venue":"VENUE","seq":40,"plans":[{"id":"p1","name":"Plan A","notes":"Seeded from the hand sketch. Triangles came in as pars, lines as beam bars, boxes as lasers.","room":{"w":16,"h":10},"zones":[{"id":"z1","name":"DJ BOOTH","x":6,"y":0,"w":4.2,"h":1.6},{"id":"z2","name":"STAGE","x":0,"y":8,"w":4.1,"h":2},{"id":"z3","name":"RISER L","x":1.4,"y":1.4,"w":1.6,"h":1},{"id":"z4","name":"RISER R","x":12.9,"y":1.6,"w":1.7,"h":1}],"wires":[{"id":"w1","a":"f12","b":"f13","kind":"cable","note":""},{"id":"w2","a":"f13","b":"f14","kind":"cable","note":""},{"id":"w3","a":"f5","b":"f10","kind":"wireless","note":"CRMX"}],"fixtures":[
+<script type="application/json" id="plotstate">{"v":1,"savedAt":0,"venue":"VENUE","seq":50,"plans":[{"id":"p1","name":"Plan A","notes":"Seeded from the hand sketch. Triangles came in as pars, lines as beam bars, boxes as lasers.","room":{"w":16,"h":10},"zones":[{"id":"z1","name":"DJ BOOTH","x":6,"y":0,"w":4.2,"h":1.6},{"id":"z2","name":"STAGE","x":0,"y":8,"w":4.1,"h":2},{"id":"z3","name":"RISER L","x":1.4,"y":1.4,"w":1.6,"h":1},{"id":"z4","name":"RISER R","x":12.9,"y":1.6,"w":1.7,"h":1}],"wires":[{"id":"w1","a":"f12","b":"f13","kind":"cable","note":""},{"id":"w2","a":"f13","b":"f14","kind":"cable","note":""},{"id":"w3","a":"f5","b":"f10","kind":"wireless","note":"CRMX"}],"fixtures":[
 {"id":"f1","type":"par","label":"PAR 1","x":2.5,"y":0.9,"rot":180,"uni":1,"addr":1,"fp":8,"node":"Node A","note":""},
 {"id":"f2","type":"par","label":"PAR 2","x":6.6,"y":0.85,"rot":180,"uni":1,"addr":9,"fp":8,"node":"Node A","note":"booth"},
 {"id":"f3","type":"par","label":"PAR 3","x":7.8,"y":0.75,"rot":180,"uni":1,"addr":17,"fp":8,"node":"Node A","note":"booth"},
@@ -255,7 +268,11 @@
 {"id":"f20","type":"bar","label":"BAR 10","x":12.1,"y":7.2,"rot":0,"uni":2,"addr":217,"fp":24,"node":"Node A","note":""},
 {"id":"f21","type":"laser","label":"LASER 1","x":2.2,"y":1.9,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"ILDA"},
 {"id":"f22","type":"laser","label":"LASER 2","x":13.7,"y":2.1,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"ILDA"},
-{"id":"f23","type":"laser","label":"LASER 3","x":15.2,"y":1.2,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"ILDA"}
+{"id":"f23","type":"laser","label":"LASER 3","x":15.2,"y":1.2,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"ILDA"},
+{"id":"f24","type":"speaker","label":"SPK 1","x":5.5,"y":0.8,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"L top"},
+{"id":"f25","type":"speaker","label":"SPK 2","x":10.7,"y":0.8,"rot":180,"uni":null,"addr":null,"fp":0,"node":"","note":"R top"},
+{"id":"f26","type":"sub","label":"SUB 1","x":5.5,"y":1.7,"rot":0,"uni":null,"addr":null,"fp":0,"node":"","note":""},
+{"id":"f27","type":"sub","label":"SUB 2","x":10.7,"y":1.7,"rot":0,"uni":null,"addr":null,"fp":0,"node":"","note":""}
 ]}]}</script>
 
 <script>
@@ -268,15 +285,26 @@ const LS_STATE = "patchplot-state";
 const LS_PREFS = "patchplot-prefs";
 
 const TYPES = {
-  par:     {name:"Par",         tag:"PAR",   fp:8},
-  spot:    {name:"Spot / Beam", tag:"SPOT",  fp:16},
-  wash:    {name:"Wash",        tag:"WASH",  fp:16},
-  bar:     {name:"Beam Bar",    tag:"BAR",   fp:24},
-  blinder: {name:"Blinder",     tag:"BLND",  fp:4},
-  atomic:  {name:"Atomic",      tag:"ATOM",  fp:154},
-  laser:   {name:"Laser",       tag:"LASER", fp:0},
+  par:      {name:"Par",          tag:"PAR",   fp:8,   cat:"light"},
+  spot:     {name:"Spot / Beam",  tag:"SPOT",  fp:16,  cat:"light"},
+  wash:     {name:"Wash",         tag:"WASH",  fp:16,  cat:"light"},
+  bar:      {name:"Beam Bar",     tag:"BAR",   fp:24,  cat:"light"},
+  blinder:  {name:"Blinder",      tag:"BLND",  fp:4,   cat:"light"},
+  atomic:   {name:"Atomic",       tag:"ATOM",  fp:154, cat:"light"},
+  laser:    {name:"Laser",        tag:"LASER", fp:0,   cat:"light"},
+  speaker:  {name:"Speaker",      tag:"SPK",   fp:0,   cat:"gear"},
+  sub:      {name:"Sub",          tag:"SUB",   fp:0,   cat:"gear"},
+  decks:    {name:"DJ Decks",     tag:"DJ",    fp:0,   cat:"gear"},
+  screen:   {name:"Screen",       tag:"SCR",   fp:0,   cat:"gear"},
+  projector:{name:"Projector",    tag:"PROJ",  fp:0,   cat:"gear"},
+  camera:   {name:"Camera",       tag:"CAM",   fp:0,   cat:"gear"},
+  hazer:    {name:"Hazer",        tag:"HAZE",  fp:2,   cat:"gear"},
+  node:     {name:"Art-Net Node", tag:"NODE",  fp:0,   cat:"gear"},
+  power:    {name:"Power Drop",   tag:"PWR",   fp:0,   cat:"gear"},
+  install:  {name:"Installation", tag:"INST",  fp:0,   cat:"gear"},
 };
-const TYPE_ORDER = ["par","spot","wash","bar","blinder","atomic","laser"];
+const TYPE_ORDER = ["par","spot","wash","bar","blinder","atomic","laser",
+  "speaker","sub","decks","screen","projector","camera","hazer","node","power","install"];
 
 const SCREEN = {
   bg:"#fdfdfb", glyph:"#ffffff", ink:"#1d1f23", muted:"#6f7378",
@@ -331,13 +359,14 @@ function migrate(s){
   for(const p of s.plans){
     p.zones = p.zones||[]; p.fixtures = p.fixtures||[]; p.wires = p.wires||[]; p.notes = p.notes||"";
     p.room = p.room||{w:16,h:10};
-    for(const f of p.fixtures){ if(!TYPES[f.type]) f.type="par"; f.rot=f.rot||0; f.fp=(f.fp==null?TYPES[f.type].fp:f.fp); }
+    for(const f of p.fixtures){ if(!TYPES[f.type]) f.type="par"; f.rot=f.rot||0; f.fp=(f.fp==null?TYPES[f.type].fp:f.fp);
+      if(f.type==="install"){ f.shape=f.shape||"circle"; f.sw=f.sw||1.5; f.sh=f.sh||1.5; if(f.tint===undefined) f.tint=null; } }
   }
   return s;
 }
 
 /* ================= glyphs ================= */
-function glyphSvg(type, col, P){
+function glyphSvg(type, col, P, f){
   const gf = P.glyph;
   switch(type){
     case "par": return '<path d="M0 -15 L14 11 L-14 11 Z" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2" stroke-linejoin="round"/>'
@@ -365,11 +394,61 @@ function glyphSvg(type, col, P){
       +'<line x1="0" y1="-11" x2="-10" y2="-24" stroke="'+col+'" stroke-width="1"/>'
       +'<line x1="0" y1="-11" x2="0" y2="-26" stroke="'+col+'" stroke-width="1"/>'
       +'<line x1="0" y1="-11" x2="10" y2="-24" stroke="'+col+'" stroke-width="1"/>';
+    case "speaker": return '<path d="M-9 -12 L9 -12 L14 12 L-14 12 Z" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2" stroke-linejoin="round"/>'
+      +'<circle cy="4" r="5" fill="none" stroke="'+col+'" stroke-width="1"/>'
+      +'<circle cy="-6" r="2" fill="none" stroke="'+col+'" stroke-width="0.9"/>';
+    case "sub": return '<rect x="-13" y="-13" width="26" height="26" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<circle r="7.5" fill="none" stroke="'+col+'" stroke-width="1"/>'
+      +'<circle cx="9" cy="-9" r="2" fill="none" stroke="'+col+'" stroke-width="0.8"/>';
+    case "decks": return '<rect x="-22" y="-9" width="44" height="18" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<circle cx="-13" r="6" fill="none" stroke="'+col+'" stroke-width="1"/>'
+      +'<circle cx="13" r="6" fill="none" stroke="'+col+'" stroke-width="1"/>'
+      +'<rect x="-4" y="-6" width="8" height="12" rx="1" fill="none" stroke="'+col+'" stroke-width="0.9"/>';
+    case "screen": return '<rect x="-22" y="-3" width="44" height="6" rx="1" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<line x1="0" y1="3" x2="0" y2="8" stroke="'+col+'" stroke-width="1"/>'
+      +'<line x1="-6" y1="8" x2="6" y2="8" stroke="'+col+'" stroke-width="1"/>';
+    case "projector": return '<rect x="-14" y="-8" width="28" height="16" rx="2" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<circle cy="-8" r="3.2" fill="'+gf+'" stroke="'+col+'" stroke-width="1"/>'
+      +'<line x1="-2" y1="-11" x2="-9" y2="-23" stroke="'+col+'" stroke-width="0.9" opacity="0.8"/>'
+      +'<line x1="2" y1="-11" x2="9" y2="-23" stroke="'+col+'" stroke-width="0.9" opacity="0.8"/>';
+    case "camera": return '<rect x="-10" y="-7" width="20" height="14" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<path d="M-4 -7 L0 -14 L4 -7" fill="none" stroke="'+col+'" stroke-width="1.1" stroke-linejoin="round"/>'
+      +'<circle r="2.6" fill="none" stroke="'+col+'" stroke-width="0.9"/>';
+    case "hazer": { let r='<rect x="-13" y="-8" width="26" height="16" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>';
+      for(const dx of [-6,0,6]) r+='<path d="M'+dx+' -10 c 2 -3 -2 -5 1 -9" fill="none" stroke="'+col+'" stroke-width="0.9" opacity="0.8"/>';
+      return r; }
+    case "node": { let r='<rect x="-10" y="-7" width="20" height="14" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<circle cx="-5.5" cy="-2.5" r="1.4" fill="'+col+'"/>';
+      for(const dx of [-5,0,5]) r+='<line x1="'+dx+'" y1="7" x2="'+dx+'" y2="11" stroke="'+col+'" stroke-width="1"/>';
+      return r; }
+    case "power": return '<rect x="-9" y="-9" width="18" height="18" rx="2" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<path d="M1.5 -5.5 L-3 0.5 L0 0.5 L-1.5 5.5 L3 -0.5 L0 -0.5 Z" fill="none" stroke="'+col+'" stroke-width="1" stroke-linejoin="round"/>';
+    case "install": {
+      const sw2 = ((f&&f.sw)||0.7)*S/2, sh2 = ((f&&f.sh)||0.7)*S/2;
+      const shp = (f&&f.shape)||"circle";
+      let r='';
+      if(shp==="rect"){
+        r+='<rect x="'+(-sw2).toFixed(1)+'" y="'+(-sh2).toFixed(1)+'" width="'+(2*sw2).toFixed(1)+'" height="'+(2*sh2).toFixed(1)+'" rx="2" fill="none" stroke="'+col+'" stroke-width="1.1" stroke-dasharray="5 4"/>';
+      } else if(shp==="star"){
+        const R1=Math.min(sw2,sh2), R2=R1*0.45; let pts='';
+        for(let i=0;i<10;i++){ const a=-Math.PI/2 + i*Math.PI/5, rr=(i%2===0)?R1:R2;
+          pts+=(Math.cos(a)*rr).toFixed(1)+','+(Math.sin(a)*rr).toFixed(1)+' '; }
+        r+='<polygon points="'+pts.trim()+'" fill="none" stroke="'+col+'" stroke-width="1.1" stroke-linejoin="round"/>';
+      } else {
+        r+='<ellipse rx="'+sw2.toFixed(1)+'" ry="'+sh2.toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width="1.1" stroke-dasharray="5 4"/>';
+      }
+      r+='<line x1="-4" y1="0" x2="4" y2="0" stroke="'+col+'" stroke-width="1"/>'
+        +'<line x1="0" y1="-4" x2="0" y2="4" stroke="'+col+'" stroke-width="1"/>';
+      return r; }
   }
   return "";
 }
-const LABEL_Y = {par:28, spot:28, wash:28, bar:26, blinder:24, atomic:28, laser:28};
-const HALO_R  = {par:24, spot:26, wash:26, bar:42, blinder:26, atomic:32, laser:24};
+const LABEL_Y = {par:28, spot:28, wash:28, bar:26, blinder:24, atomic:28, laser:28,
+  speaker:26, sub:27, decks:23, screen:22, projector:23, camera:21, hazer:22, node:25, power:23, install:0};
+const HALO_R  = {par:24, spot:26, wash:26, bar:42, blinder:26, atomic:32, laser:24,
+  speaker:26, sub:24, decks:32, screen:30, projector:26, camera:22, hazer:22, node:20, power:20, install:0};
+function labelYFor(f){ return f.type==="install" ? ((f.sh||0.7)*S/2)+13 : LABEL_Y[f.type]; }
+function haloFor(f){ return f.type==="install" ? Math.max(f.sw||0.7, f.sh||0.7)*S/2+8 : HALO_R[f.type]; }
 
 /* ================= patch maths ================= */
 function fxRange(f){ if(f.uni==null || f.addr==null) return null; return [f.addr, f.addr + Math.max(f.fp,1) - 1]; }
@@ -459,28 +538,34 @@ function buildWorld(p, P, opts){
   // fixtures
   for(const f of p.fixtures){
     const px=M+f.x*S, py=M+f.y*S;
-    const col = fxColor(P, f, cm);
+    const gear = TYPES[f.type].cat==="gear";
+    const col = (f.type==="install" && f.tint!=null) ? P.unis[f.tint%P.unis.length] : fxColor(P, f, cm);
     const isSel = sel && sel.kind==="fixture" && sel.id===f.id && opts.interactive;
+    const halo = haloFor(f);
     s += '<g data-fid="'+f.id+'" transform="translate('+px.toFixed(1)+' '+py.toFixed(1)+')" style="cursor:'+(opts.interactive&&wireMode?"crosshair":"move")+';">';
-    if(opts.interactive && wireMode && wireStart===f.id) s += '<circle r="'+HALO_R[f.type]+'" fill="none" stroke="'+P.accent+'" stroke-width="1.2"/>';
-    if(isSel) s += '<circle r="'+HALO_R[f.type]+'" fill="none" stroke="'+P.accent+'" stroke-width="1" stroke-dasharray="4 3"/>';
-    if(conf[f.id]) s += '<circle r="'+(HALO_R[f.type]-3)+'" fill="none" stroke="'+P.danger+'" stroke-width="1.2" opacity="0.9"/>';
-    s += '<g transform="rotate('+(f.rot||0)+')">'+glyphSvg(f.type, col, P)+'</g>';
-    let ty = LABEL_Y[f.type];
+    if(opts.interactive && wireMode && wireStart===f.id) s += '<circle r="'+halo+'" fill="none" stroke="'+P.accent+'" stroke-width="1.2"/>';
+    if(isSel) s += '<circle r="'+halo+'" fill="none" stroke="'+P.accent+'" stroke-width="1" stroke-dasharray="4 3"/>';
+    if(conf[f.id]) s += '<circle r="'+(halo-3)+'" fill="none" stroke="'+P.danger+'" stroke-width="1.2" opacity="0.9"/>';
+    s += '<g transform="rotate('+(f.rot||0)+')">'+glyphSvg(f.type, col, P, f)+'</g>';
+    let ty = labelYFor(f);
     if(opts.labels){ s += '<text y="'+ty+'" text-anchor="middle" font-size="11" fill="'+P.ink+'">'+esc(f.label)+'</text>'; ty += 12; }
-    if(opts.patch){ s += '<text y="'+ty+'" text-anchor="middle" font-size="9.5" fill="'+(conf[f.id]?P.danger:col)+'">'+esc(patchText(f))+'</text>'; }
+    if(opts.patch && !(gear && f.uni==null)){ s += '<text y="'+ty+'" text-anchor="middle" font-size="9.5" fill="'+(conf[f.id]?P.danger:col)+'">'+esc(patchText(f))+'</text>'; ty += 12; }
+    if(gear && f.note){ s += '<text y="'+ty+'" text-anchor="middle" font-size="9" fill="'+P.muted+'">'+esc(f.note)+'</text>'; }
     s += '</g>';
   }
   // bottom strip: legend + title block
   const sy = M + p.room.h*S + 22;
-  let lx = M;
-  s += '<g transform="translate(0 '+sy+')">';
-  for(const t of TYPE_ORDER){
-    s += '<g transform="translate('+(lx+16)+' 14) scale(0.5)">'+glyphSvg(t, P.muted, P)+'</g>'
-      +'<text x="'+(lx+34)+'" y="18" font-size="9" fill="'+P.muted+'">'+esc(TYPES[t].name)+'</text>';
-    lx += 40 + TYPES[t].name.length*6.2;
-  }
   const tbw = 250, tbx = W - M - tbw;
+  let lx = M, ly = 0;
+  s += '<g transform="translate(0 '+sy+')">';
+  const usedTypes = TYPE_ORDER.filter(t=>p.fixtures.some(f=>f.type===t));
+  for(const t of usedTypes){
+    const wItem = 40 + TYPES[t].name.length*6.2;
+    if(lx > M && lx + wItem > tbx - 14){ lx = M; ly += 26; }
+    s += '<g transform="translate('+(lx+16)+' '+(ly+14)+') scale(0.5)">'+glyphSvg(t, P.muted, P, null)+'</g>'
+      +'<text x="'+(lx+34)+'" y="'+(ly+18)+'" font-size="9" fill="'+P.muted+'">'+esc(TYPES[t].name)+'</text>';
+    lx += wItem;
+  }
   const nfx = p.fixtures.length, unis = uniSummary(p).length;
   const dateStr = state.savedAt ? new Date(state.savedAt).toISOString().slice(0,10) : "unsaved";
   s += '<g>'
@@ -514,6 +599,11 @@ function renderInspector(){
     $("fX").value=f.x; $("fY").value=f.y; $("fRot").value=f.rot||0;
     $("fUni").value=f.uni==null?"":f.uni; $("fAddr").value=f.addr==null?"":f.addr; $("fFp").value=f.fp;
     $("fNode").value=f.node||""; $("fNote").value=f.note||"";
+    $("fInstall").hidden = f.type!=="install";
+    if(f.type==="install"){
+      $("fShape").value=f.shape||"circle"; $("fSw").value=f.sw||1.5; $("fSh").value=f.sh||1.5;
+      $("fTint").value=f.tint==null?"":String(f.tint);
+    }
     updateRange(f);
   } else if(sel && sel.kind==="zone"){
     const z = p.zones.find(x=>x.id===sel.id); if(!z){ sel=null; return renderInspector(); }
@@ -532,7 +622,9 @@ function renderInspector(){
 }
 function updateRange(f){
   const r = fxRange(f); const el = $("insRange");
-  if(!r){ el.innerHTML = 'Unpatched. Set a universe and address.'; return; }
+  if(!r){ el.innerHTML = TYPES[f.type].cat==="gear"
+    ? 'No DMX patch. Add universe + address if this device takes DMX.'
+    : 'Unpatched. Set a universe and address.'; return; }
   const conf = conflicts(plan())[f.id];
   el.innerHTML = 'Occupies <b>'+(f.node?esc(f.node)+' ':'')+'U'+f.uni+' : '+pad3(r[0])+' to '+pad3(r[1])+'</b>'
     + (conf==="overflow" ? ' <span class="bad">outside 1-512</span>' : conf==="overlap" ? ' <span class="bad">overlaps another fixture</span>' : '');
@@ -577,11 +669,15 @@ function renderTabs(){
     '<button class="tab'+(i===planIdx?" active":"")+'" data-plan="'+i+'">'+esc(p.name)+'</button>').join("");
 }
 function renderPalette(){
-  let h = '<div class="phead">add</div>';
-  for(const t of TYPE_ORDER){
-    h += '<button class="padd" data-add="'+t+'" title="Add '+esc(TYPES[t].name)+'">'
-      +'<svg width="56" height="34" viewBox="-42 -22 84 44">'+glyphSvg(t, SCREEN.muted, SCREEN)+'</svg>'
-      +'<span>'+esc(TYPES[t].name)+'</span></button>';
+  let h = '';
+  for(const cat of [["light","lights"],["gear","gear"]]){
+    h += '<div class="phead"'+(cat[0]==="gear"?' style="margin-top:8px;"':'')+'>'+cat[1]+'</div>';
+    for(const t of TYPE_ORDER){
+      if(TYPES[t].cat!==cat[0]) continue;
+      h += '<button class="padd" data-add="'+t+'" title="Add '+esc(TYPES[t].name)+'">'
+        +'<svg width="56" height="34" viewBox="-42 -22 84 44">'+glyphSvg(t, SCREEN.muted, SCREEN, null)+'</svg>'
+        +'<span>'+esc(TYPES[t].name)+'</span></button>';
+    }
   }
   h += '<div class="phead" style="margin-top:8px;">tools</div>';
   h += '<button class="padd" id="wiretool" aria-pressed="'+wireMode+'" title="Draw wires: click fixtures one after another to chain them, Esc to stop">'
@@ -621,6 +717,7 @@ function addFixture(type){
   const n = p.fixtures.filter(f=>f.type===type).length + 1;
   const f = {id:"f"+(++state.seq), type, label:TYPES[type].tag+" "+n, x:round1(p.room.w/2), y:round1(p.room.h/2),
              rot:0, uni:null, addr:null, fp:TYPES[type].fp, node:"", note:""};
+  if(type==="install"){ f.shape="circle"; f.sw=1.5; f.sh=1.5; f.tint=null; }
   p.fixtures.push(f);
   sel = {kind:"fixture", id:f.id};
   markDirty(); renderAll();
@@ -756,7 +853,12 @@ function bindFixtureInputs(){
   $("fLabel").addEventListener("input", ()=>{ const f=get(); if(f){ f.label=$("fLabel").value; markDirty(); renderCanvas(); renderDrawer(); }});
   $("fType").addEventListener("change", ()=>{ const f=get(); if(f){ const old=f.type; f.type=$("fType").value;
     if(f.fp===TYPES[old].fp){ f.fp=TYPES[f.type].fp; $("fFp").value=f.fp; }
-    markDirty(); renderCanvas(); renderDrawer(); updateRange(f); }});
+    if(f.type==="install"){ f.shape=f.shape||"circle"; f.sw=f.sw||1.5; f.sh=f.sh||1.5; if(f.tint===undefined) f.tint=null; }
+    renderInspector(); markDirty(); renderCanvas(); renderDrawer(); }});
+  $("fShape").addEventListener("change", ()=>{ const f=get(); if(f){ f.shape=$("fShape").value; markDirty(); renderCanvas(); }});
+  for(const [id,key] of [["fSw","sw"],["fSh","sh"]])
+    $(id).addEventListener("input", ()=>{ const f=get(); if(f){ const v=parseFloat($(id).value); if(!isNaN(v)&&v>0.1){ f[key]=v; markDirty(); renderCanvas(); }}});
+  $("fTint").addEventListener("change", ()=>{ const f=get(); if(f){ const v=$("fTint").value; f.tint = v===""?null:parseInt(v,10); markDirty(); renderCanvas(); }});
   for(const [id,key] of [["fX","x"],["fY","y"],["fRot","rot"]])
     $(id).addEventListener("input", ()=>{ const f=get(); if(f){ const v=parseFloat($(id).value); if(!isNaN(v)){ f[key]=v; markDirty(); renderCanvas(); }}});
   for(const [id,key] of [["fUni","uni"],["fAddr","addr"]])
