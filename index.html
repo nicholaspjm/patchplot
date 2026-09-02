@@ -124,8 +124,9 @@
     <div class="hgroup" style="position:relative;">
       <button id="btnExportMenu">export</button>
       <div id="exportmenu" hidden>
-        <button data-x="csv">patch list csv</button>
+        <button data-x="png">plot png</button>
         <button data-x="svg">plot svg</button>
+        <button data-x="csv">patch list csv</button>
         <button data-x="json">project json</button>
         <button data-x="import">import json</button>
       </div>
@@ -209,9 +210,10 @@
     <div id="drawerbar">
       <div id="unisum"></div>
       <div class="spacer"></div>
-      <button id="btnAutopatch" title="Re-address every patched fixture sequentially per universe">auto-patch</button>
-      <button id="btnCsv">export csv</button>
+      <button id="btnAutopatch" title="Re-address every patched fixture sequentially per node and universe">auto-patch</button>
+      <button id="btnPng">export png</button>
       <button id="btnSvg">export svg</button>
+      <button id="btnCsv">export csv</button>
       <button id="btnJson">export json</button>
       <button id="btnImport">import json</button>
     </div>
@@ -295,6 +297,7 @@ let planIdx = 0;
 let sel = null;               // {kind:"fixture"|"zone", id}
 let dirty = false;
 let saveTimer = null;
+let lsTimer = null;
 let saveAttempts = 0;
 let mode = {readonly:false, local:false};
 let wireMode = false, wireStart = null, wirePreview = null;
@@ -350,14 +353,13 @@ function glyphSvg(type, col, P){
     case "bar": { let r='<rect x="-36" y="-7" width="72" height="14" rx="1" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>';
       for(let i=1;i<8;i++){const x=-36+i*9; r+='<line x1="'+x+'" y1="-7" x2="'+x+'" y2="7" stroke="'+col+'" stroke-width="0.7" opacity="0.45"/>';}
       return r; }
-    case "blinder": { let r='<rect x="-14" y="-14" width="28" height="28" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
-      +'<line x1="0" y1="-14" x2="0" y2="14" stroke="'+col+'" stroke-width="0.7" opacity="0.5"/>'
-      +'<line x1="-14" y1="0" x2="14" y2="0" stroke="'+col+'" stroke-width="0.7" opacity="0.5"/>';
-      for(const dx of [-7,7]) for(const dy of [-7,7]) r+='<circle cx="'+dx+'" cy="'+dy+'" r="3.5" fill="none" stroke="'+col+'" stroke-width="0.9"/>';
+    case "blinder": { let r='<rect x="-16" y="-9" width="32" height="18" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
+      +'<line x1="0" y1="-9" x2="0" y2="9" stroke="'+col+'" stroke-width="0.7" opacity="0.5"/>';
+      for(const dx of [-8,8]) r+='<circle cx="'+dx+'" cy="0" r="4.2" fill="none" stroke="'+col+'" stroke-width="0.9"/>';
       return r; }
-    case "atomic": { let r='<rect x="-24" y="-11" width="48" height="22" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
-      +'<line x1="-18" y1="0" x2="18" y2="0" stroke="'+col+'" stroke-width="1.2" opacity="0.75"/>';
-      for(const x of [-18,18]) r+='<line x1="'+x+'" y1="-5" x2="'+x+'" y2="5" stroke="'+col+'" stroke-width="1" opacity="0.7"/>';
+    case "atomic": { let r='<rect x="-24" y="-11" width="48" height="22" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>';
+      for(let i=0;i<8;i++){ const px=-17.5+i*5;
+        for(const py of [-5,0,5]) r+='<rect x="'+(px-1.5)+'" y="'+(py-1.5)+'" width="3" height="3" stroke="'+col+'" stroke-width="0.6" fill="none" opacity="0.8"/>'; }
       return r; }
     case "laser": return '<rect x="-11" y="-11" width="22" height="22" rx="1.5" fill="'+gf+'" stroke="'+col+'" stroke-width="1.2"/>'
       +'<line x1="0" y1="-11" x2="-10" y2="-24" stroke="'+col+'" stroke-width="1"/>'
@@ -366,7 +368,7 @@ function glyphSvg(type, col, P){
   }
   return "";
 }
-const LABEL_Y = {par:28, spot:28, wash:28, bar:26, blinder:30, atomic:28, laser:28};
+const LABEL_Y = {par:28, spot:28, wash:28, bar:26, blinder:24, atomic:28, laser:28};
 const HALO_R  = {par:24, spot:26, wash:26, bar:42, blinder:26, atomic:32, laser:24};
 
 /* ================= patch maths ================= */
@@ -592,10 +594,15 @@ function renderPalette(){
 function renderAll(){ renderTabs(); renderCanvas(); renderInspector(); renderDrawer(); }
 
 /* ================= mutations ================= */
+function mirrorLocal(){
+  try{ localStorage.setItem(LS_STATE, JSON.stringify(state)); }catch(e){}
+}
 function markDirty(){
-  dirty = true; setChip("dirty");
+  dirty = true; state.editedAt = Date.now(); setChip("dirty");
+  clearTimeout(lsTimer);
+  lsTimer = setTimeout(mirrorLocal, 250);
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{ if(dirty) doSave(); }, 3000);
+  saveTimer = setTimeout(()=>{ if(dirty) doSave(); }, 1500);
 }
 function setWireMode(on){
   wireMode = on; wireStart = null; wirePreview = null;
@@ -856,7 +863,14 @@ window.addEventListener("keydown", e=>{
     e.preventDefault(); markDirty(); renderCanvas(); syncSelInputs(f); $("fRot").value=f.rot;
   }
 });
-window.addEventListener("beforeunload", e=>{ if(dirty && !mode.readonly){ e.preventDefault(); e.returnValue=""; } });
+function flushNow(){
+  if(!dirty) return;
+  clearTimeout(lsTimer); mirrorLocal();
+  if(!mode.readonly && !mode.local && cap.artifact){ doSave(); }
+}
+window.addEventListener("pagehide", flushNow);
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") flushNow(); });
+window.addEventListener("beforeunload", e=>{ if(dirty && !mode.readonly && !mode.local){ e.preventDefault(); e.returnValue=""; } });
 
 /* ================= toast & modal ================= */
 function toast(msg, action){
@@ -902,10 +916,46 @@ function exportCsv(){
 function exportJson(){
   offerFile("patchplot-"+state.venue.replace(/[^\w-]+/g,"_")+".json", JSON.stringify(state, null, 2));
 }
-function exportSvg(){
+function plotSvgString(){
   const b = buildWorld(plan(), PRINT, {grid:true, labels:true, patch:true, interactive:false});
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+b.w+' '+b.h+'" width="'+b.w+'" height="'+b.h+'">'+b.inner+'</svg>';
-  offerFile((state.venue+"-"+plan().name+"-plot").replace(/[^\w-]+/g,"_")+".svg", svg);
+  return {svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+b.w+' '+b.h+'" width="'+b.w+'" height="'+b.h+'">'+b.inner+'</svg>', w:b.w, h:b.h};
+}
+function exportSvg(){
+  offerFile((state.venue+"-"+plan().name+"-plot").replace(/[^\w-]+/g,"_")+".svg", plotSvgString().svg);
+}
+async function offerBinary(filename, blob){
+  if(cap.downloads){
+    try{ await cap.downloads.save({filename, data:blob}); toast("Saved "+esc(filename)); return; }
+    catch(err){
+      if(err && err.code==="declined") return;
+      if(err && err.code==="rate_limited"){ toast("A download prompt is already open"); return; }
+    }
+  }
+  try{
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  }catch(e){ toast("Downloads are blocked in this view. Use plot svg instead."); }
+}
+function exportPng(){
+  const ps = plotSvgString();
+  const url = URL.createObjectURL(new Blob([ps.svg], {type:"image/svg+xml"}));
+  const img = new Image();
+  img.onload = ()=>{
+    const sc = 2;
+    const c = document.createElement("canvas"); c.width = ps.w*sc; c.height = ps.h*sc;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,c.width,c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    c.toBlob(png=>{
+      if(!png){ toast("PNG render failed, use plot svg instead"); return; }
+      offerBinary((state.venue+"-"+plan().name+"-plot").replace(/[^\w-]+/g,"_")+".png", png);
+    }, "image/png");
+  };
+  img.onerror = ()=>{ URL.revokeObjectURL(url); toast("PNG render failed, use plot svg instead"); };
+  img.src = url;
 }
 function openImport(){
   openModal("Import JSON", "Paste a Patchplot JSON export. It replaces everything currently here (all plans).", "", "import", txt=>{
@@ -920,12 +970,13 @@ function openImport(){
 $("btnCsv").addEventListener("click", exportCsv);
 $("btnJson").addEventListener("click", exportJson);
 $("btnSvg").addEventListener("click", exportSvg);
+$("btnPng").addEventListener("click", exportPng);
 $("btnImport").addEventListener("click", openImport);
 $("btnExportMenu").addEventListener("click", e=>{ e.stopPropagation(); $("exportmenu").hidden = !$("exportmenu").hidden; });
 $("exportmenu").addEventListener("click", e=>{
   const b = e.target.closest("[data-x]"); if(!b) return;
   $("exportmenu").hidden = true;
-  ({csv:exportCsv, svg:exportSvg, json:exportJson, import:openImport})[b.getAttribute("data-x")]();
+  ({csv:exportCsv, svg:exportSvg, png:exportPng, json:exportJson, import:openImport})[b.getAttribute("data-x")]();
 });
 document.addEventListener("click", e=>{ if(!e.target.closest("#btnExportMenu")) $("exportmenu").hidden = true; });
 $("btnAutopatch").addEventListener("click", autoPatch);
@@ -987,8 +1038,10 @@ async function handleSaveError(err, json){
   if(code==="too_large"){ setChip("error"); toast("The plot is too large to save"); return; }
   if(code==="rate_limited"){ setChip("dirty"); saveTimer=setTimeout(doSave, 12000); return; }
   saveAttempts++;
-  if(saveAttempts<=3){ setChip("dirty"); saveTimer=setTimeout(doSave, 4000+Math.random()*4000); }
-  else { setChip("error"); toast("Save keeps failing. Use export json to keep your work."); }
+  const wait = Math.min(30000, 2500*Math.pow(1.7, Math.min(saveAttempts, 6))) + Math.random()*1500;
+  setChip("dirty");
+  if(saveAttempts===4) toast("Saving keeps failing, still retrying. A copy is kept in this browser either way.");
+  saveTimer = setTimeout(doSave, wait);
 }
 
 /* ================= boot ================= */
@@ -1019,12 +1072,16 @@ async function loadState(){
   const use = (window.claude && window.claude.use) ? window.claude.use.bind(window.claude) : null;
   if(!use){ cap.artifact=null; cap.downloads=null; mode.local=true; setChip("local"); return; }
   try{ cap.artifact = await use("artifact"); }catch(e){ cap.artifact = null; }
+  const stamp = s => Math.max(s&&s.editedAt||0, s&&s.savedAt||0);
+  let ls = null;
+  try{ ls = migrate(JSON.parse(localStorage.getItem(LS_STATE))); }catch(e){}
   if(cap.artifact===null){
     mode.local = true; setChip("local");
-    try{
-      const ls = migrate(JSON.parse(localStorage.getItem(LS_STATE)));
-      if(ls && state && ls.savedAt > state.savedAt){ state = ls; bootUi(); toast("Loaded a newer local copy from this browser"); }
-    }catch(e){}
+    if(ls && state && stamp(ls) > stamp(state)){ state = ls; bootUi(); toast("Loaded a newer local copy from this browser"); }
+  } else if(ls && state && stamp(ls) > stamp(state)){
+    toast("This browser holds newer unsaved changes than the shared version", {label:"restore", fn:()=>{
+      state = ls; bootUi(); markDirty();
+    }});
   }
   try{ cap.downloads = await use("downloads"); }catch(e){ cap.downloads = null; }
 })();
