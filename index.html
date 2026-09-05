@@ -25,7 +25,8 @@
   #app{display:flex;flex-direction:column;height:100vh;}
   header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 14px;min-height:34px;background:var(--bg1);border-bottom:1px solid var(--line);flex:none;}
   .wordmark{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.22em;color:var(--ink);white-space:nowrap;}
-  #venue{width:130px;text-transform:uppercase;letter-spacing:.06em;}
+  #venue{width:120px;text-transform:uppercase;letter-spacing:.06em;}
+  #docname{width:160px;font-family:var(--sans);font-size:13px;font-weight:600;}
   #plantabs{display:flex;gap:4px;align-items:center;flex:1;min-width:0;overflow-x:auto;}
   #plantabs .tab{white-space:nowrap;}
   #plantabs .tab.active{border-color:var(--accent-dim);color:var(--accent);background:#eef1fa;}
@@ -78,20 +79,44 @@
   #modalbox{background:var(--bg0);border:1px solid var(--line);border-radius:3px;padding:18px;width:min(680px,92vw);display:flex;flex-direction:column;gap:12px;max-height:84vh;box-shadow:0 8px 32px rgba(20,22,26,.16);}
   #modalbox h3{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;}
   #modaltext{width:100%;height:280px;resize:vertical;font-size:11px;line-height:1.5;white-space:pre;}
+  #modaltext.oneline{height:auto;min-height:0;resize:none;font-size:13px;padding:8px 9px;}
   #modalhint{font-family:var(--mono);font-size:11px;color:var(--muted);}
 
-  #chip{min-width:110px;text-align:center;}
+  #chip{min-width:96px;text-align:center;}
   #chip.saved{color:var(--ok);border-color:#b7d1a8;}
   #chip.dirty{color:var(--accent);border-color:var(--accent-dim);}
   #chip.err{color:var(--danger);border-color:#ddb0a8;}
-  #robanner{display:none;background:#f8ecd7;border-bottom:1px solid #dcbf8a;color:#7a5a12;font-family:var(--mono);font-size:11px;padding:5px 14px;letter-spacing:.05em;}
 
-  #exportmenu{position:absolute;top:calc(100% + 4px);right:0;background:var(--bg0);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;min-width:150px;z-index:55;box-shadow:0 4px 18px rgba(20,22,26,.14);padding:4px;}
-  #exportmenu button{border:none;text-align:left;background:transparent;padding:6px 9px;}
-  #exportmenu button:hover{background:var(--bg2);}
-  #exportmenu[hidden]{display:none;}
+  .menu{position:absolute;top:calc(100% + 4px);left:0;background:var(--bg0);border:1px solid var(--line);border-radius:3px;display:flex;flex-direction:column;min-width:190px;z-index:55;box-shadow:0 4px 18px rgba(20,22,26,.14);padding:4px;}
+  .menu button{border:none;text-align:left;background:transparent;padding:6px 9px;white-space:nowrap;}
+  .menu button:hover{background:var(--bg2);}
+  .menu[hidden]{display:none;}
+  .menu .sep{height:1px;background:var(--line);margin:4px 2px;}
+  #exportmenu{left:auto;right:0;min-width:150px;}
+
+  #library{position:fixed;inset:0;background:rgba(30,32,36,.35);display:none;align-items:center;justify-content:center;z-index:68;}
+  #library.open{display:flex;}
+  #librarybox{background:var(--bg0);border:1px solid var(--line);border-radius:3px;padding:16px 18px 18px;width:min(720px,94vw);max-height:84vh;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 32px rgba(20,22,26,.16);}
+  .libhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .libhead h3{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;}
+  .libhead .spacer{flex:1;}
+  #liblist{overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:60px;}
+  .librow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:3px;padding:5px 8px 5px 10px;}
+  .librow:hover{background:var(--bg2);}
+  .librow.cur{border-color:var(--accent-dim);background:#f5f7fd;}
+  .librow .libopen{flex:1;min-width:0;border:none;background:transparent;text-align:left;display:flex;flex-direction:column;gap:2px;padding:4px 2px;}
+  .librow .libopen:hover{background:transparent;}
+  .libname{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .libname em{font-family:var(--mono);font-style:normal;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-left:7px;}
+  .libmeta{font-family:var(--mono);font-size:10px;color:var(--muted);}
+  .libacts{display:flex;gap:4px;flex:none;}
+  .libacts button{padding:4px 7px;}
+  .libempty{font-family:var(--mono);font-size:11px;color:var(--muted);padding:14px 2px;}
+  #liberr{font-family:var(--mono);font-size:11px;color:var(--danger);}
+  #liberr[hidden]{display:none;}
   #inspector input,#inspector select,#inspector textarea{width:100%;}
   @media (max-width:1100px){ #inspector{width:250px;} #palette{width:84px;} }
+  @media (max-width:640px){ .librow{flex-wrap:wrap;} .libacts{width:100%;} }
   @media (max-width:860px){
     #plantabs{order:9;flex-basis:100%;}
     #exportmenu{left:0;right:auto;}
@@ -109,7 +134,24 @@
 <div id="app">
   <header>
     <span class="wordmark">PATCHPLOT</span>
-    <input id="venue" title="Venue name" spellcheck="false">
+    <div class="hgroup" style="position:relative;">
+      <button id="btnFile" title="New, open, save as, rename, delete">file</button>
+      <div id="filemenu" class="menu" hidden>
+        <button data-f="new">new blank plot</button>
+        <button data-f="open">open saved plot&#8230;</button>
+        <div class="sep"></div>
+        <button data-f="rename">rename this plot&#8230;</button>
+        <button data-f="saveas">save as a copy&#8230;</button>
+        <div class="sep"></div>
+        <button data-f="importfile">open a .json file&#8230;</button>
+        <button data-f="importtext">paste project json&#8230;</button>
+        <button data-f="exportjson">download project json</button>
+        <div class="sep"></div>
+        <button data-f="delete" class="danger">delete this plot</button>
+      </div>
+    </div>
+    <input id="docname" title="Name of this saved plot" placeholder="Untitled plot" spellcheck="false">
+    <input id="venue" title="Venue name &#8212; printed on the plot title block" placeholder="VENUE" spellcheck="false">
     <div id="plantabs"></div>
     <div class="hgroup">
       <button id="btnNewPlan" title="New empty plan">+ plan</button>
@@ -133,7 +175,6 @@
     </div>
     <button id="chip" class="primary" title="Save (Ctrl+S)">Save</button>
   </header>
-  <div id="robanner">READ-ONLY VIEW · you can look around and export, but changes here will not be saved</div>
   <main>
     <aside id="palette"></aside>
     <section id="canvaswrap"><svg id="plot" preserveAspectRatio="xMidYMid meet"></svg></section>
@@ -209,8 +250,9 @@
           <b>Click</b> a fixture to select, <b>drag</b> to move.<br>
           <b>Arrows</b> nudge 0.1 m (Shift 0.5)<br>
           <b>R</b> rotate 15&#176; (Shift-R back)<br>
-          <b>Ctrl+D</b> duplicate · <b>Del</b> delete<br>
-          <b>Ctrl+S</b> save · <b>Esc</b> deselect<br>
+          <b>Ctrl+D</b> duplicate &#183; <b>Del</b> delete<br>
+          <b>Ctrl+S</b> save &#183; <b>Ctrl+O</b> open<br>
+          <b>Esc</b> deselect<br>
           <b>Wire tool</b>: click fixtures one<br>
           after another to chain, Esc stops.<br>
           Fixture colour = node + universe.<br>
@@ -235,6 +277,20 @@
 </div>
 
 <div id="toasts"></div>
+<input type="file" id="fileinput" accept=".json,application/json" hidden>
+
+<div id="library"><div id="librarybox">
+  <div class="libhead">
+    <h3>Saved plots</h3>
+    <div class="spacer"></div>
+    <button id="libNew">+ new blank</button>
+    <button id="libImport">open a .json file&#8230;</button>
+    <button id="libClose">close</button>
+  </div>
+  <div id="liberr" hidden></div>
+  <div id="liblist"></div>
+</div></div>
+
 <div id="modal"><div id="modalbox">
   <h3 id="modaltitle"></h3>
   <div id="modalhint"></div>
@@ -281,8 +337,10 @@
 const S = 60;                 // px per metre
 const M = 40;                 // canvas margin px
 const STRIP = 80;             // legend + title block strip height px
-const LS_STATE = "patchplot-state";
+const LS_STATE = "patchplot-state";        // legacy single-slot store, folded into the library on first run
 const LS_PREFS = "patchplot-prefs";
+const LS_INDEX = "patchplot-library";      // {v, currentId, docs:[{id,name,createdAt,savedAt,plans,fixtures}]}
+const LS_DOC   = "patchplot-doc-";         // + doc id -> one saved plot
 
 const TYPES = {
   par:      {name:"Par",          tag:"PAR",   fp:8,   cat:"light"},
@@ -325,13 +383,12 @@ let planIdx = 0;
 let sel = null;               // {kind:"fixture"|"zone", id}
 let dirty = false;
 let saveTimer = null;
-let lsTimer = null;
-let saveAttempts = 0;
-let mode = {readonly:false, local:false};
+let saveFailed = false;
 let wireMode = false, wireStart = null, wirePreview = null;
-let cap = {artifact:undefined, downloads:undefined};
 let prefs = {grid:true, labels:true, patch:true, drawer:false};
 let lastDeleted = null;
+let lib = {v:1, currentId:null, docs:[]};
+let pendingDelete = null, pendingDeleteTimer = null;
 
 try{ const p = JSON.parse(localStorage.getItem(LS_PREFS)); if(p) prefs = Object.assign(prefs, p); }catch(e){}
 
@@ -356,6 +413,7 @@ function readEmbedded(){
 function migrate(s){
   if(!s || !Array.isArray(s.plans) || !s.plans.length) return null;
   s.v = s.v||1; s.savedAt = s.savedAt||0; s.venue = s.venue||"VENUE"; s.seq = s.seq||100;
+  s.name = (typeof s.name==="string" && s.name.trim()) ? s.name.trim() : "Untitled plot";
   for(const p of s.plans){
     p.zones = p.zones||[]; p.fixtures = p.fixtures||[]; p.wires = p.wires||[]; p.notes = p.notes||"";
     p.room = p.room||{w:16,h:10};
@@ -363,6 +421,56 @@ function migrate(s){
       if(f.type==="install"){ f.shape=f.shape||"circle"; f.sw=f.sw||1.5; f.sh=f.sh||1.5; if(f.tint===undefined) f.tint=null; } }
   }
   return s;
+}
+
+/* ================= documents ================= */
+function blankPlan(id, name){
+  return {id, name, notes:"", room:{w:16,h:10}, zones:[], fixtures:[], wires:[]};
+}
+function blankState(name){
+  return {v:1, name:name||"Untitled plot", savedAt:0, editedAt:0, venue:"VENUE", seq:1,
+          plans:[blankPlan("p1","Plan A")]};
+}
+const docKey = id => LS_DOC + id;
+const docName = () => ((state && state.name) || "").trim() || "Untitled plot";
+const newDocId = () => "d" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const docEntry = id => lib.docs.find(d => d.id === id) || null;
+const fileSafe = s => String(s).trim().replace(/[^\w-]+/g,"_").replace(/^_+|_+$/g,"") || "plot";
+
+function libRead(){
+  try{
+    const l = JSON.parse(localStorage.getItem(LS_INDEX));
+    if(l && Array.isArray(l.docs)) return {v:1, currentId:l.currentId||null, docs:l.docs.filter(d=>d&&d.id)};
+  }catch(e){}
+  return null;
+}
+function libWrite(){
+  try{ localStorage.setItem(LS_INDEX, JSON.stringify(lib)); return true; }catch(e){ return false; }
+}
+function docRead(id){
+  try{ return migrate(JSON.parse(localStorage.getItem(docKey(id)))); }catch(e){ return null; }
+}
+function docStats(s){
+  return {plans:s.plans.length, fixtures:s.plans.reduce((n,p)=>n+p.fixtures.length,0)};
+}
+function uniqueDocName(base, exceptId){
+  const want = String(base||"").trim() || "Untitled plot";
+  const taken = new Set(lib.docs.filter(d=>d.id!==exceptId).map(d=>d.name));
+  if(!taken.has(want)) return want;
+  let n = 2; while(taken.has(want+" "+n)) n++;
+  return want+" "+n;
+}
+function isQuotaError(e){
+  return !!e && (e.name==="QuotaExceededError" || e.name==="NS_ERROR_DOM_QUOTA_REACHED" || e.code===22 || e.code===1014);
+}
+function fmtWhen(t){
+  if(!t) return "never";
+  const mins = Math.round((Date.now()-t)/60000);
+  if(mins < 1) return "just now";
+  if(mins < 60) return mins+" min ago";
+  const hrs = Math.round(mins/60);
+  if(hrs < 24) return hrs+(hrs===1?" hour ago":" hours ago");
+  return new Date(t).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"});
 }
 
 /* ================= glyphs ================= */
@@ -690,15 +798,10 @@ function renderPalette(){
 function renderAll(){ renderTabs(); renderCanvas(); renderInspector(); renderDrawer(); }
 
 /* ================= mutations ================= */
-function mirrorLocal(){
-  try{ localStorage.setItem(LS_STATE, JSON.stringify(state)); }catch(e){}
-}
 function markDirty(){
   dirty = true; state.editedAt = Date.now(); setChip("dirty");
-  clearTimeout(lsTimer);
-  lsTimer = setTimeout(mirrorLocal, 250);
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{ if(dirty) doSave(); }, 1500);
+  saveTimer = setTimeout(()=>{ if(dirty) doSave(); }, 900);
 }
 function setWireMode(on){
   wireMode = on; wireStart = null; wirePreview = null;
@@ -906,14 +1009,24 @@ $("plantabs").addEventListener("click", e=>{
   const b = e.target.closest("[data-plan]"); if(!b) return;
   planIdx = +b.getAttribute("data-plan"); sel=null; wireStart=null; wirePreview=null; savePrefs(); renderAll();
 });
+function uniquePlanName(base){
+  const taken = new Set(state.plans.map(p=>p.name));
+  if(!taken.has(base)) return base;
+  let n = 2; while(taken.has(base+" "+n)) n++;
+  return base+" "+n;
+}
+function nextPlanName(){
+  const taken = new Set(state.plans.map(p=>p.name));
+  for(let i=0;i<26;i++){ const n = "Plan "+String.fromCharCode(65+i); if(!taken.has(n)) return n; }
+  return uniquePlanName("Plan");
+}
 $("btnNewPlan").addEventListener("click", ()=>{
-  state.plans.push({id:"p"+(++state.seq), name:"Plan "+String.fromCharCode(65+state.plans.length), notes:"",
-    room:{w:16,h:10}, zones:[], fixtures:[]});
+  state.plans.push(blankPlan("p"+(++state.seq), nextPlanName()));
   planIdx = state.plans.length-1; sel=null; wireStart=null; wirePreview=null; markDirty(); renderAll();
 });
 $("btnDupPlan").addEventListener("click", ()=>{
   const c = JSON.parse(JSON.stringify(plan()));
-  c.id = "p"+(++state.seq); c.name = plan().name+" copy";
+  c.id = "p"+(++state.seq); c.name = uniquePlanName(plan().name+" copy"); c.wires = c.wires||[];
   state.plans.splice(planIdx+1,0,c); planIdx++; sel=null; wireStart=null; wirePreview=null; markDirty(); renderAll();
 });
 $("palette").addEventListener("click", e=>{
@@ -945,14 +1058,22 @@ bindToggle("tDrawer","drawer",()=>{ $("drawer").classList.toggle("open", prefs.d
 window.addEventListener("keydown", e=>{
   const t = e.target;
   if(t && (t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.tagName==="SELECT"||t.isContentEditable)){
-    if(e.key==="Escape") t.blur();
+    if(e.key==="Escape"){ t.blur(); if($("modal").classList.contains("open")) closeModal(); }
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){ e.preventDefault(); doSave(); }
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="o"){ e.preventDefault(); t.blur(); openLibrary(); }
     return;
   }
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){ e.preventDefault(); doSave(); return; }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="o"){ e.preventDefault(); openLibrary(); return; }
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="d"){ e.preventDefault();
     const f = sel&&sel.kind==="fixture" && plan().fixtures.find(f=>f.id===sel.id); if(f) duplicateFixture(f); return; }
-  if(e.key==="Escape"){ if($("modal").classList.contains("open")) closeModal(); else if(wireMode){ setWireMode(false); } else { sel=null; renderCanvas(); renderInspector(); renderDrawer(); } return; }
+  if(e.key==="Escape"){
+    if($("modal").classList.contains("open")) closeModal();
+    else if($("library").classList.contains("open")) closeLibrary();
+    else if(wireMode){ setWireMode(false); }
+    else { sel=null; renderCanvas(); renderInspector(); renderDrawer(); }
+    return;
+  }
   if(e.key==="Delete"||e.key==="Backspace"){ e.preventDefault(); deleteSelected(); return; }
   const f = sel&&sel.kind==="fixture" && plan().fixtures.find(f=>f.id===sel.id);
   if(f){
@@ -965,14 +1086,11 @@ window.addEventListener("keydown", e=>{
     e.preventDefault(); markDirty(); renderCanvas(); syncSelInputs(f); $("fRot").value=f.rot;
   }
 });
-function flushNow(){
-  if(!dirty) return;
-  clearTimeout(lsTimer); mirrorLocal();
-  if(!mode.readonly && !mode.local && cap.artifact){ doSave(); }
-}
+function flushNow(){ if(dirty) doSave(); }
 window.addEventListener("pagehide", flushNow);
 document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") flushNow(); });
-window.addEventListener("beforeunload", e=>{ if(dirty && !mode.readonly && !mode.local){ e.preventDefault(); e.returnValue=""; } });
+// only nag when the last save actually failed - otherwise everything is already on disk
+window.addEventListener("beforeunload", e=>{ if(dirty && saveFailed){ e.preventDefault(); e.returnValue=""; } });
 
 /* ================= toast & modal ================= */
 function toast(msg, action){
@@ -986,25 +1104,44 @@ let modalAction = null;
 function openModal(title, hint, text, primaryLabel, fn, readonlyText){
   $("modaltitle").textContent = title; $("modalhint").textContent = hint;
   $("modaltext").value = text; $("modaltext").readOnly = !!readonlyText;
+  $("modaltext").classList.remove("oneline");
+  $("modaltext").rows = 12;
   $("modalPrimary").textContent = primaryLabel; modalAction = fn;
   $("modal").classList.add("open");
   if(readonlyText){ $("modaltext").focus(); $("modaltext").select(); }
 }
+function openPrompt(title, hint, value, primaryLabel, fn){
+  openModal(title, hint, value, primaryLabel, fn);
+  const t = $("modaltext");
+  t.classList.add("oneline"); t.rows = 1;
+  t.focus(); t.select();
+}
+$("modaltext").addEventListener("keydown", e=>{
+  if(e.key==="Enter" && !e.shiftKey && $("modaltext").classList.contains("oneline")){
+    e.preventDefault();
+    if(modalAction) modalAction($("modaltext").value);
+  }
+});
 function closeModal(){ $("modal").classList.remove("open"); modalAction=null; }
 $("modalClose").addEventListener("click", closeModal);
 $("modalPrimary").addEventListener("click", ()=>{ if(modalAction) modalAction($("modaltext").value); });
 $("modal").addEventListener("pointerdown", e=>{ if(e.target===$("modal")) closeModal(); });
 
 /* ================= export / import ================= */
-async function offerFile(filename, data){
-  if(cap.downloads){
-    try{ await cap.downloads.save({filename, data}); toast("Saved "+esc(filename)); return; }
-    catch(err){
-      if(err && err.code==="declined") return;
-      if(err && err.code==="rate_limited"){ toast("A download prompt is already open"); return; }
-    }
+function downloadBlob(filename, blob){
+  try{
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = filename; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    return true;
+  }catch(e){ return false; }
+}
+function offerFile(filename, data, mime){
+  if(downloadBlob(filename, new Blob([data], {type:(mime||"text/plain")+";charset=utf-8"}))){
+    toast("Downloaded "+esc(filename)); return;
   }
-  openModal(filename, "Downloads are unavailable in this view. Copy the text below and save it as "+filename+".", data, "select all",
+  openModal(filename, "Downloads are blocked here. Copy the text below and save it as "+filename+".", data, "select all",
     ()=>{ $("modaltext").focus(); $("modaltext").select(); }, true);
 }
 function csvEsc(v){ v=String(v==null?"":v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
@@ -1013,32 +1150,31 @@ function exportCsv(){
   const rows = [["Label","Type","Universe","Address","Channels","End","Node","X_m","Y_m","Rot_deg","Note"]];
   for(const f of p.fixtures){ const r=fxRange(f);
     rows.push([f.label, TYPES[f.type].name, f.uni==null?"":f.uni, f.addr==null?"":f.addr, f.fp, r?r[1]:"", f.node||"", f.x, f.y, f.rot||0, f.note||""]); }
-  offerFile((state.venue+"-"+p.name+"-patch").replace(/[^\w-]+/g,"_")+".csv", rows.map(r=>r.map(csvEsc).join(",")).join("\n"));
+  offerFile(fileSafe(state.venue+"-"+p.name+"-patch")+".csv", rows.map(r=>r.map(csvEsc).join(",")).join("\n"), "text/csv");
+}
+function projectJson(s){
+  const copy = JSON.parse(JSON.stringify(s));
+  delete copy.id;                       // the id is this browser's, not part of the document
+  return JSON.stringify(copy, null, 2);
 }
 function exportJson(){
-  offerFile("patchplot-"+state.venue.replace(/[^\w-]+/g,"_")+".json", JSON.stringify(state, null, 2));
+  offerFile("patchplot-"+fileSafe(docName())+".json", projectJson(state), "application/json");
+}
+function downloadDoc(id){
+  const s = (state && id===state.id) ? state : docRead(id);
+  if(!s){ libError("That plot could not be read, so there is nothing to download."); return; }
+  offerFile("patchplot-"+fileSafe((docEntry(id)||{}).name || s.name)+".json", projectJson(s), "application/json");
 }
 function plotSvgString(){
   const b = buildWorld(plan(), PRINT, {grid:true, labels:true, patch:true, interactive:false});
   return {svg:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+b.w+' '+b.h+'" width="'+b.w+'" height="'+b.h+'">'+b.inner+'</svg>', w:b.w, h:b.h};
 }
 function exportSvg(){
-  offerFile((state.venue+"-"+plan().name+"-plot").replace(/[^\w-]+/g,"_")+".svg", plotSvgString().svg);
+  offerFile(fileSafe(state.venue+"-"+plan().name+"-plot")+".svg", plotSvgString().svg, "image/svg+xml");
 }
-async function offerBinary(filename, blob){
-  if(cap.downloads){
-    try{ await cap.downloads.save({filename, data:blob}); toast("Saved "+esc(filename)); return; }
-    catch(err){
-      if(err && err.code==="declined") return;
-      if(err && err.code==="rate_limited"){ toast("A download prompt is already open"); return; }
-    }
-  }
-  try{
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
-  }catch(e){ toast("Downloads are blocked in this view. Use plot svg instead."); }
+function offerBinary(filename, blob){
+  if(downloadBlob(filename, blob)) toast("Downloaded "+esc(filename));
+  else toast("Downloads are blocked in this view. Use plot svg instead.");
 }
 function exportPng(){
   const ps = plotSvgString();
@@ -1053,22 +1189,39 @@ function exportPng(){
     URL.revokeObjectURL(url);
     c.toBlob(png=>{
       if(!png){ toast("PNG render failed, use plot svg instead"); return; }
-      offerBinary((state.venue+"-"+plan().name+"-plot").replace(/[^\w-]+/g,"_")+".png", png);
+      offerBinary(fileSafe(state.venue+"-"+plan().name+"-plot")+".png", png);
     }, "image/png");
   };
   img.onerror = ()=>{ URL.revokeObjectURL(url); toast("PNG render failed, use plot svg instead"); };
   img.src = url;
 }
-function openImport(){
-  openModal("Import JSON", "Paste a Patchplot JSON export. It replaces everything currently here (all plans).", "", "import", txt=>{
-    try{
-      const s = migrate(JSON.parse(txt));
-      if(!s) throw new Error("bad");
-      state = s; planIdx = 0; sel = null;
-      closeModal(); markDirty(); bootUi();
-    }catch(err){ toast("Could not read that JSON"); }
-  });
+function importJson(txt, fallbackName){
+  let raw = null;
+  try{ raw = JSON.parse(txt); }catch(e){}
+  const s = migrate(raw);
+  if(!s){ toast("That does not look like a Patchplot export"); return false; }
+  const named = raw && typeof raw.name==="string" && raw.name.trim();
+  if(!saveIfDirty()){ toast(SAVE_BLOCKED); return false; }
+  s.name = uniqueDocName(named ? raw.name.trim() : (fallbackName || "Imported plot"));
+  loadDoc(s, newDocId());
+  doSave();
+  closeLibrary();
+  toast("Imported as \u201C"+esc(docName())+"\u201D");
+  return true;
 }
+function openImport(){
+  openModal("Paste project JSON", "Paste a Patchplot JSON export. It opens as a new saved plot \u2014 nothing already saved is touched.",
+    "", "import", txt=>{ if(importJson(txt)) closeModal(); });
+}
+$("fileinput").addEventListener("change", e=>{
+  const f = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=> importJson(String(r.result), f.name.replace(/\.json$/i,"").replace(/^patchplot[-_]/i,""));
+  r.onerror = ()=> toast("Could not read that file");
+  r.readAsText(f);
+});
 $("btnCsv").addEventListener("click", exportCsv);
 $("btnJson").addEventListener("click", exportJson);
 $("btnSvg").addEventListener("click", exportSvg);
@@ -1088,105 +1241,291 @@ function setChip(kind){
   const c = $("chip");
   c.classList.remove("saved","dirty","err");
   if(kind==="saved"){ c.classList.add("saved"); c.textContent="Saved"; }
-  else if(kind==="dirty"){ c.classList.add("dirty"); c.textContent="Save ●"; }
-  else if(kind==="saving"){ c.textContent="Saving…"; }
-  else if(kind==="readonly"){ c.classList.add("err"); c.textContent="Read-only"; }
-  else if(kind==="local"){ c.classList.add("dirty"); c.textContent="Local only"; }
+  else if(kind==="dirty"){ c.classList.add("dirty"); c.textContent="Save \u25CF"; }
   else if(kind==="error"){ c.classList.add("err"); c.textContent="Save failed"; }
   else { c.textContent="Save"; }
 }
 $("chip").addEventListener("click", ()=>doSave());
 
-async function doSave(){
-  if(mode.readonly) return;
+function indexCurrent(){
+  let e = docEntry(state.id);
+  if(!e){ e = {id:state.id, createdAt:Date.now()}; lib.docs.push(e); }
+  const st = docStats(state);
+  e.name = docName(); e.savedAt = state.savedAt; e.plans = st.plans; e.fixtures = st.fixtures;
+  lib.currentId = state.id;
+}
+function doSave(){
   clearTimeout(saveTimer);
+  state.name = docName();
   state.savedAt = Date.now();
-  const json = JSON.stringify(state);
-  try{ localStorage.setItem(LS_STATE, json); }catch(e){}
-  if(cap.artifact===undefined){ setChip("saving"); setTimeout(doSave, 1500); return; }
-  if(cap.artifact===null || mode.local){ dirty=false; setChip("local"); return; }
-  setChip("saving");
   try{
-    await cap.artifact.publish({"plot-state.json": json});
-    dirty = false; saveAttempts = 0; setChip("saved");
-  }catch(err){ handleSaveError(err, json); }
-}
-async function handleSaveError(err, json){
-  const code = err && err.code;
-  if(code==="conflict"){ toast("Someone saved a newer version. Loading it."); return; }
-  if(code==="not_writer" || code==="not_granted" || code==="consent_required"){
-    mode.readonly = true; setChip("readonly"); $("robanner").style.display="block"; return;
+    localStorage.setItem(docKey(state.id), JSON.stringify(state));
+    indexCurrent();
+    if(!libWrite()) throw new Error("index write failed");
+    dirty = false; saveFailed = false; setChip("saved");
+    if($("library").classList.contains("open")) renderLibrary();
+    return true;
+  }catch(err){
+    saveFailed = true; setChip("error");
+    toast(isQuotaError(err)
+      ? "This browser is out of storage. Delete an old plot in <b>file &#8250; open</b>, or download this one as JSON."
+      : "Could not save to this browser. Download the project JSON to keep a copy.");
+    return false;
   }
-  if(code==="capability_disabled" || code==="capability_removed" || code==="read_only_path"){
-    // fall back to republishing the whole page with state embedded
-    try{
-      const res = await fetch(location.pathname, {cache:"no-store"});
-      if(!res.ok) throw new Error("fetch");
-      const src = await res.text();
-      const re = /(<script type="application\/json" id="plotstate">)[\s\S]*?(<\/script>)/;
-      if(!re.test(src)) throw new Error("tag");
-      const html = src.replace(re, (m,a,b)=> a + json.replace(/</g,"\\u003c") + b);
-      await cap.artifact.publish(html);   // on success this view reloads
-      dirty = false; setChip("saved");
-    }catch(err2){
-      const c2 = err2 && err2.code;
-      if(c2==="conflict"){ toast("Someone saved a newer version. Loading it."); return; }
-      if(c2==="not_writer" || c2==="not_granted"){ mode.readonly=true; setChip("readonly"); $("robanner").style.display="block"; return; }
-      mode.local = true; dirty = false; setChip("local");
-      toast("Saving to the shared artifact is unavailable here. Kept a copy in this browser only.");
+}
+function saveIfDirty(){ return (state && dirty) ? doSave() : true; }
+const SAVE_BLOCKED = "The plot that is open could not be saved, so it was left open. Download it as JSON first (file \u203A download project json).";
+
+/* ---- switching documents ---- */
+function loadDoc(s, id){
+  state = s; state.id = id;
+  planIdx = 0; sel = null; lastDeleted = null;
+  wireMode = false; wireStart = null; wirePreview = null;
+  dirty = false; saveFailed = false;
+  clearTimeout(saveTimer);
+  lib.currentId = id;
+  bootUi();
+}
+function newDoc(){
+  if(!saveIfDirty()){ toast(SAVE_BLOCKED); return; }
+  loadDoc(blankState(uniqueDocName("Untitled plot")), newDocId());
+  doSave();
+  closeLibrary();
+  toast("New blank plot");
+  $("docname").focus(); $("docname").select();
+}
+function openDoc(id){
+  if(state && id === state.id){ closeLibrary(); return; }
+  const s = docRead(id);
+  if(!s){ libError("That plot could not be read \u2014 its data is missing or damaged."); return; }
+  if(!saveIfDirty()){ libError(SAVE_BLOCKED); return; }
+  loadDoc(s, id);
+  libWrite();
+  setChip("saved");
+  closeLibrary();
+  toast("Opened \u201C"+esc(docName())+"\u201D");
+}
+function saveAsDoc(name){
+  const copy = JSON.parse(JSON.stringify(state));
+  delete copy.id;
+  if(!saveIfDirty()){ toast(SAVE_BLOCKED); return; }
+  copy.name = uniqueDocName(name || (docName()+" copy"));
+  loadDoc(copy, newDocId());
+  doSave();
+  toast("Now working on \u201C"+esc(docName())+"\u201D");
+}
+function duplicateDoc(id){
+  const s = id === (state&&state.id) ? JSON.parse(JSON.stringify(state)) : docRead(id);
+  if(!s){ libError("That plot could not be copied."); return; }
+  delete s.id;
+  s.name = uniqueDocName(((docEntry(id)||{}).name || s.name || "Untitled plot") + " copy");
+  s.savedAt = Date.now();
+  const nid = newDocId();
+  try{
+    localStorage.setItem(docKey(nid), JSON.stringify(s));
+    const st = docStats(s);
+    lib.docs.push({id:nid, name:s.name, createdAt:Date.now(), savedAt:s.savedAt, plans:st.plans, fixtures:st.fixtures});
+    libWrite(); renderLibrary();
+    toast("Copied to \u201C"+esc(s.name)+"\u201D");
+  }catch(err){
+    libError(isQuotaError(err) ? "This browser is out of storage \u2014 delete a plot first." : "Could not copy that plot.");
+  }
+}
+function renameDoc(id, rawName){
+  const nm = uniqueDocName(rawName, id);
+  if(!nm) return;
+  const e = docEntry(id);
+  if(id === (state&&state.id)){
+    state.name = nm; $("docname").value = nm; document.title = nm+" \u00B7 Patchplot";
+    doSave();
+  } else if(e){
+    const s = docRead(id);
+    if(s){ s.name = nm; try{ localStorage.setItem(docKey(id), JSON.stringify(s)); }catch(err){} }
+    e.name = nm; libWrite();
+  }
+  renderLibrary();
+}
+function deleteDoc(id){
+  try{ localStorage.removeItem(docKey(id)); }catch(e){}
+  lib.docs = lib.docs.filter(d=>d.id!==id);
+  if(state && state.id === id){
+    dirty = false;
+    const next = lib.docs.slice().sort((a,b)=>(b.savedAt||0)-(a.savedAt||0))[0];
+    const s = next ? docRead(next.id) : null;
+    if(s){ loadDoc(s, next.id); setChip("saved"); libWrite(); }
+    else { loadDoc(blankState("Untitled plot"), newDocId()); doSave(); }
+  } else {
+    libWrite();
+  }
+  renderLibrary();
+}
+
+/* ---- the library dialog ---- */
+function libError(msg){ const e=$("liberr"); e.innerHTML = msg; e.hidden = false; }
+function openLibrary(){
+  saveIfDirty();
+  pendingDelete = null; $("liberr").hidden = true;
+  renderLibrary();
+  $("library").classList.add("open");
+}
+function closeLibrary(){
+  $("library").classList.remove("open");
+  pendingDelete = null; clearTimeout(pendingDeleteTimer);
+}
+function renderLibrary(){
+  const rows = lib.docs.slice().sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+  $("liblist").innerHTML = rows.map(d=>{
+    const cur = state && d.id===state.id;
+    const np = d.plans||1, nf = d.fixtures||0;
+    return '<div class="librow'+(cur?" cur":"")+'" data-id="'+esc(d.id)+'">'
+      + '<button class="libopen" data-act="open" title="Open this plot">'
+        + '<span class="libname">'+esc(d.name||"Untitled plot")+(cur?' <em>open now</em>':'')+'</span>'
+        + '<span class="libmeta">'+np+' plan'+(np===1?"":"s")+' \u00B7 '+nf+' fixture'+(nf===1?"":"s")
+          +' \u00B7 saved '+esc(fmtWhen(d.savedAt))+'</span>'
+      + '</button>'
+      + '<span class="libacts">'
+        + '<button data-act="rename">rename</button>'
+        + '<button data-act="dup">copy</button>'
+        + '<button data-act="dl">download</button>'
+        + '<button data-act="del" class="danger">'+(pendingDelete===d.id?"really?":"delete")+'</button>'
+      + '</span></div>';
+  }).join("") || '<div class="libempty">No saved plots yet. Start one with <b>+ new blank</b>.</div>';
+}
+$("liblist").addEventListener("click", e=>{
+  const btn = e.target.closest("[data-act]"); if(!btn) return;
+  const row = btn.closest("[data-id]"); if(!row) return;
+  const id = row.getAttribute("data-id");
+  const act = btn.getAttribute("data-act");
+  $("liberr").hidden = true;
+  if(act!=="del"){ pendingDelete = null; clearTimeout(pendingDeleteTimer); }
+  if(act==="open") openDoc(id);
+  else if(act==="dup") duplicateDoc(id);
+  else if(act==="dl") downloadDoc(id);
+  else if(act==="rename"){
+    const e0 = docEntry(id);
+    openPrompt("Rename plot", "What should this plot be called?", (e0&&e0.name)||"", "rename", v=>{
+      const nm = String(v||"").trim();
+      if(!nm){ toast("Give it a name first"); return; }
+      closeModal(); renameDoc(id, nm);
+    });
+  }
+  else if(act==="del"){
+    if(pendingDelete !== id){
+      pendingDelete = id; renderLibrary();
+      clearTimeout(pendingDeleteTimer);
+      pendingDeleteTimer = setTimeout(()=>{ pendingDelete=null; renderLibrary(); }, 3500);
+      return;
     }
-    return;
+    pendingDelete = null; clearTimeout(pendingDeleteTimer);
+    const nm = (docEntry(id)||{}).name || "that plot";
+    deleteDoc(id);
+    toast("Deleted \u201C"+esc(nm)+"\u201D");
   }
-  if(code==="too_large"){ setChip("error"); toast("The plot is too large to save"); return; }
-  if(code==="rate_limited"){ setChip("dirty"); saveTimer=setTimeout(doSave, 12000); return; }
-  saveAttempts++;
-  const wait = Math.min(30000, 2500*Math.pow(1.7, Math.min(saveAttempts, 6))) + Math.random()*1500;
-  setChip("dirty");
-  if(saveAttempts===4) toast("Saving keeps failing, still retrying. A copy is kept in this browser either way.");
-  saveTimer = setTimeout(doSave, wait);
-}
+});
+$("libClose").addEventListener("click", closeLibrary);
+$("libNew").addEventListener("click", newDoc);
+$("libImport").addEventListener("click", ()=>$("fileinput").click());
+$("library").addEventListener("pointerdown", e=>{ if(e.target===$("library")) closeLibrary(); });
+
+/* ---- the file menu ---- */
+$("btnFile").addEventListener("click", e=>{ e.stopPropagation(); $("exportmenu").hidden = true; $("filemenu").hidden = !$("filemenu").hidden; });
+$("filemenu").addEventListener("click", e=>{
+  const b = e.target.closest("[data-f]"); if(!b) return;
+  $("filemenu").hidden = true;
+  const f = b.getAttribute("data-f");
+  if(f==="new") newDoc();
+  else if(f==="open") openLibrary();
+  else if(f==="rename"){
+    openPrompt("Rename plot", "What should this plot be called?", docName(), "rename", v=>{
+      const nm = String(v||"").trim();
+      if(!nm){ toast("Give it a name first"); return; }
+      closeModal(); renameDoc(state.id, nm);
+    });
+  }
+  else if(f==="saveas"){
+    openPrompt("Save as a copy", "The copy becomes the plot you are working on. The original keeps everything saved so far.",
+      docName()+" copy", "save copy", v=>{
+        const nm = String(v||"").trim();
+        if(!nm){ toast("Give the copy a name first"); return; }
+        closeModal(); saveAsDoc(nm);
+      });
+  }
+  else if(f==="importfile") $("fileinput").click();
+  else if(f==="importtext") openImport();
+  else if(f==="exportjson") exportJson();
+  else if(f==="delete"){
+    const nm = docName();
+    openPrompt("Delete plot", "Delete \u201C"+nm+"\u201D for good? Type the name to confirm, or close to keep it.", "", "delete", v=>{
+      if(String(v||"").trim() !== nm){ toast("Names do not match \u2014 nothing deleted"); return; }
+      closeModal(); const id = state.id; deleteDoc(id); toast("Deleted \u201C"+esc(nm)+"\u201D");
+    });
+  }
+});
+document.addEventListener("click", e=>{ if(!e.target.closest("#btnFile")) $("filemenu").hidden = true; });
+
+$("docname").addEventListener("input", ()=>{
+  state.name = $("docname").value;
+  document.title = docName()+" \u00B7 Patchplot";
+  markDirty();
+});
+$("docname").addEventListener("blur", ()=>{ $("docname").value = docName(); });
 
 /* ================= boot ================= */
 function bootUi(){
   $("venue").value = state.venue;
+  $("docname").value = docName();
+  document.title = docName() + " \u00B7 Patchplot";
   $("drawer").classList.toggle("open", prefs.drawer);
   renderPalette(); renderAll();
 }
-async function loadState(){
-  let fetched = null;
-  try{
-    const r = await fetch("plot-state.json", {cache:"no-store"});
-    if(r.ok) fetched = migrate(await r.json());
-  }catch(e){}
-  const embedded = migrate(readEmbedded());
-  if(fetched && embedded) state = (fetched.savedAt >= embedded.savedAt) ? fetched : embedded;
-  else state = fetched || embedded;
-  if(!state) state = {v:1,savedAt:0,venue:"VENUE",seq:1,plans:[{id:"p1",name:"Plan A",notes:"",room:{w:16,h:10},zones:[],fixtures:[]}]};
-}
-(async ()=>{
-  await loadState();
-  // fill type select once
-  $("fType").innerHTML = TYPE_ORDER.map(t=>'<option value="'+t+'">'+esc(TYPES[t].name)+'</option>').join("");
-  bindFixtureInputs(); bindZoneInputs(); bindWireInputs(); bindPlanInputs();
-  bootUi();
-})();
-(async ()=>{
-  const use = (window.claude && window.claude.use) ? window.claude.use.bind(window.claude) : null;
-  if(!use){ cap.artifact=null; cap.downloads=null; mode.local=true; setChip("local"); return; }
-  try{ cap.artifact = await use("artifact"); }catch(e){ cap.artifact = null; }
-  const stamp = s => Math.max(s&&s.editedAt||0, s&&s.savedAt||0);
-  let ls = null;
-  try{ ls = migrate(JSON.parse(localStorage.getItem(LS_STATE))); }catch(e){}
-  if(cap.artifact===null){
-    mode.local = true; setChip("local");
-    if(ls && state && stamp(ls) > stamp(state)){ state = ls; bootUi(); toast("Loaded a newer local copy from this browser"); }
-  } else if(ls && state && stamp(ls) > stamp(state)){
-    toast("This browser holds newer unsaved changes than the shared version", {label:"restore", fn:()=>{
-      state = ls; bootUi(); markDirty();
-    }});
+
+// First run: fold whatever this browser already has into the new library.
+function seedStates(){
+  const out = [];
+  let legacy = null;
+  try{ legacy = migrate(JSON.parse(localStorage.getItem(LS_STATE))); }catch(e){}
+  if(legacy){
+    if(legacy.name==="Untitled plot") legacy.name = "Recovered plot";
+    out.push(legacy);
   }
-  try{ cap.downloads = await use("downloads"); }catch(e){ cap.downloads = null; }
-})();
+  const seed = migrate(readEmbedded());
+  if(seed && !legacy){ seed.name = "Demo plot"; out.push(seed); }
+  if(!out.length) out.push(blankState("Untitled plot"));
+  return out;
+}
+function bootLibrary(){
+  lib = libRead();
+  if(!lib){
+    lib = {v:1, currentId:null, docs:[]};
+    for(const s of seedStates()){
+      const id = newDocId();
+      s.savedAt = s.savedAt || Date.now();
+      const st = docStats(s);
+      try{ localStorage.setItem(docKey(id), JSON.stringify(s)); }catch(e){}
+      lib.docs.push({id, name:s.name, createdAt:Date.now(), savedAt:s.savedAt, plans:st.plans, fixtures:st.fixtures});
+    }
+    lib.currentId = lib.docs.length ? lib.docs[0].id : null;
+    libWrite();
+  }
+  // open the last document used, skipping any index entry whose data has gone missing
+  let order = lib.docs.slice().sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+  if(lib.currentId && docEntry(lib.currentId)) order = [docEntry(lib.currentId)].concat(order.filter(d=>d.id!==lib.currentId));
+  let s = null, id = null;
+  for(const d of order){
+    const got = docRead(d.id);
+    if(got){ s = got; id = d.id; break; }
+    lib.docs = lib.docs.filter(x=>x.id!==d.id);   // stale index entry
+  }
+  if(!s){ s = blankState("Untitled plot"); id = newDocId(); }
+  state = s; state.id = id; lib.currentId = id; planIdx = 0;
+  libWrite();
+}
+
+bootLibrary();
+$("fType").innerHTML = TYPE_ORDER.map(t=>'<option value="'+t+'">'+esc(TYPES[t].name)+'</option>').join("");
+bindFixtureInputs(); bindZoneInputs(); bindWireInputs(); bindPlanInputs();
+bootUi();
+setChip("saved");
 </script>
 
 </body></html>
