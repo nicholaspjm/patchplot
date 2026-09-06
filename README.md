@@ -29,8 +29,17 @@ Work is organised into named **plots**, each holding one or more plans. The **fi
 - **download project json** — the whole plot as a file, to back up or hand to someone else
 
 Every change autosaves to the browser a moment after you stop, and the button at the top right shows whether
-the current state is on disk. Saved plots live in this browser only (localStorage), so download the project
-JSON before switching machines or clearing site data.
+the current state is on disk.
+
+### Where your work is stored
+
+Saved plots live in the browser's own storage on the device you are using, and nowhere else. The app makes no
+network calls of its own — nothing is uploaded, no account is involved, and other people opening the same URL
+get their own separate set of plots. Two consequences worth knowing:
+
+- Clearing site data, or using a private window, loses them. Download the project JSON to keep a real backup.
+- Storage is per origin, so plots saved on the live site do not show up when you open a local copy of
+  `index.html`, and vice versa. Move one across with download + **open a .json file…**.
 
 Shortcuts: drag to move, arrows nudge 0.1 m (Shift 0.5), R rotates, Ctrl+D duplicates, Del deletes,
 Ctrl+S saves, Ctrl+O opens the saved list, Esc deselects or exits the wire tool.

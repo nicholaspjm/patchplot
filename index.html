@@ -112,6 +112,8 @@
   .libacts{display:flex;gap:4px;flex:none;}
   .libacts button{padding:4px 7px;}
   .libempty{font-family:var(--mono);font-size:11px;color:var(--muted);padding:14px 2px;}
+  #libfoot{font-family:var(--mono);font-size:10px;line-height:1.7;color:var(--faint);border-top:1px solid var(--line);padding-top:10px;}
+  #libfoot b{color:var(--muted);font-weight:500;}
   #liberr{font-family:var(--mono);font-size:11px;color:var(--danger);}
   #liberr[hidden]{display:none;}
   #inspector input,#inspector select,#inspector textarea{width:100%;}
@@ -289,6 +291,8 @@
   </div>
   <div id="liberr" hidden></div>
   <div id="liblist"></div>
+  <div id="libfoot">Saved in this browser on this device only &#8212; nothing is uploaded, and nobody else
+    can see these. <b>download</b> a plot to move it to another machine or hand it over.</div>
 </div></div>
 
 <div id="modal"><div id="modalbox">
