@@ -13,7 +13,7 @@ A single-file lighting plot planner for clubs and small venues. Drafting-style p
 - Wire tool: click fixtures one after another to chain cable runs, mark any wire wireless
 - Named plot files: new, open, rename, save as a copy, delete — all kept in the browser, with autosave
 - Multiple plans per file, with duplicate, editable room size and dashed zones
-- Auto-patch: packs fixtures into universes by channel count, respecting a per-universe limit, with a live preview before you commit and one-click undo after
+- Auto-patch: packs fixtures into universes by channel count and by wire run — everything on one cable stays in one universe — with a live preview before you commit and one-click undo after
 - Patch list with per node/universe totals
 - Exports: CSV patch sheet, print-style SVG plot, full project JSON (with import)
 
@@ -34,9 +34,16 @@ the current state is on disk.
 
 ### Auto-patch
 
-**patch list › auto-patch** works out addresses for you. It packs each fixture into a universe by its channel
-count, never lets one straddle a universe boundary, gives every Art-Net node its own universe space, and
-skips anything with no channels (speakers, lasers left at 0, power drops).
+**auto-patch** (in the header, and in the patch list drawer) works out addresses for you. It packs each
+fixture into a universe by its channel count, never lets one straddle a universe boundary, gives every
+Art-Net node its own universe space, and skips anything with no channels (speakers, lasers left at 0,
+power drops).
+
+It also follows the wires. A DMX line carries exactly one universe, so everything you have chained together
+with the wire tool is kept in the same one and addressed in cable order. Art-Net nodes break a chain, since
+each output off a node starts a fresh universe, and non-DMX gear in the middle of a run passes the chain
+through. If a run names more than one node, the whole run moves onto the first node it names — one cable
+comes from one output. Turn **follow wire runs** off if your wires are power rather than data.
 
 - **Order** — group by fixture type, sort by label, or run across the room front to back
 - **Scope** — *re-address everything*, or *fill unpatched only*, which leaves the existing patch alone and
@@ -44,11 +51,13 @@ skips anything with no channels (speakers, lasers left at 0, power drops).
 - **Chans / universe** — 512 by default; lower it to leave headroom at the top of each universe
 - **First universe / first address** — start somewhere other than U1 @ 001
 - **Gap between fixtures** — leave spare channels between units for later expansion
+- **Follow wire runs** — fixtures on one cable share a universe (on by default)
 - **Keep each type in one universe** — starts a fresh universe rather than split a block of identical
   fixtures, when the whole block would fit in one
 
 The preview shows what each universe will hold before you apply, and anything that cannot fit is named
-rather than quietly pushed past 512. After applying, the toast offers **undo**.
+rather than quietly pushed past 512 — including a wire run too long for one universe, which no DMX line
+could carry either. After applying, the toast offers **undo**.
 
 ### Where your work is stored
 
