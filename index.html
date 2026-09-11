@@ -23,11 +23,11 @@
   label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 3px;}
 
   #app{display:flex;flex-direction:column;height:100vh;}
-  header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 14px;min-height:34px;background:var(--bg1);border-bottom:1px solid var(--line);flex:none;}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 10px;min-height:34px;background:var(--bg1);border-bottom:1px solid var(--line);flex:none;}
   .wordmark{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.22em;color:var(--ink);white-space:nowrap;}
-  #venue{width:120px;text-transform:uppercase;letter-spacing:.06em;}
-  #docname{width:160px;font-family:var(--sans);font-size:13px;font-weight:600;}
-  #plantabs{display:flex;gap:4px;align-items:center;flex:1;min-width:140px;overflow-x:auto;}
+  #venue{width:104px;text-transform:uppercase;letter-spacing:.06em;}
+  #docname{width:140px;font-family:var(--sans);font-size:13px;font-weight:600;}
+  #plantabs{display:flex;gap:4px;align-items:center;flex:1;min-width:112px;overflow-x:auto;}
   #plantabs .tab{white-space:nowrap;}
   #plantabs .tab.active{border-color:var(--accent-dim);color:var(--accent);background:#eef1fa;}
   .hgroup{display:flex;gap:6px;align-items:center;}
@@ -82,7 +82,7 @@
   #modaltext.oneline{height:auto;min-height:0;resize:none;font-size:13px;padding:8px 9px;}
   #modalhint{font-family:var(--mono);font-size:11px;color:var(--muted);}
 
-  #chip{min-width:96px;text-align:center;}
+  #chip{min-width:74px;text-align:center;}
   #chip.saved{color:var(--ok);border-color:#b7d1a8;}
   #chip.dirty{color:var(--accent);border-color:var(--accent-dim);}
   #chip.err{color:var(--danger);border-color:#ddb0a8;}
@@ -337,8 +337,12 @@
     <div><label>First universe</label><input id="apUni" type="number" min="0" max="32767" step="1"></div>
     <div><label>First address</label><input id="apAddr" type="number" min="1" max="512" step="1"></div>
     <div><label>Gap between fx</label><input id="apGap" type="number" min="0" max="64" step="1"></div>
+    <div style="grid-column:span 2;"><label>Wire runs</label><select id="apRuns">
+      <option value="isolate">One universe per run &#8212; nothing shares without a wire</option>
+      <option value="pack">Keep each run whole, but pack runs together</option>
+      <option value="off">Ignore wires, just pack by channel count</option>
+    </select></div>
   </div>
-  <label class="apcheck"><input type="checkbox" id="apChains"> follow wire runs &#8212; fixtures on one cable share a universe</label>
   <label class="apcheck"><input type="checkbox" id="apKeep"> keep each type in one universe where it fits</label>
   <div id="appreview"></div>
   <div class="btnrow" style="margin-top:0;">
@@ -920,7 +924,7 @@ function deleteSelected(){
    Packs fixtures into universes by channel footprint. A fixture never straddles a
    universe boundary, each Art-Net node gets its own universe space, and anything
    that cannot fit is reported rather than silently overflowing past 512. */
-const AP_DEFAULTS = {order:"type", scope:"all", startUni:1, startAddr:1, maxCh:512, gap:0, keepType:true, chains:true};
+const AP_DEFAULTS = {order:"type", scope:"all", startUni:1, startAddr:1, maxCh:512, gap:0, keepType:true, runs:"isolate"};
 function apOpts(){ prefs.ap = Object.assign({}, AP_DEFAULTS, prefs.ap||{}); return prefs.ap; }
 const chans = f => Math.max(f.fp||0, 0);
 const natCmp = (a,b) => String(a==null?"":a).localeCompare(String(b==null?"":b), undefined, {numeric:true, sensitivity:"base"});
@@ -997,30 +1001,34 @@ function planAutoPatch(p, o){
   const gap       = Math.max(0, Math.min(64, Math.round(o.gap) || 0));
   const startUni  = Math.max(0, Math.round(o.startUni) || 0);
   const startAddr = Math.min(maxCh, Math.max(1, Math.round(o.startAddr) || 1));
-  const chains    = o.chains !== false;
+  const mode      = o.runs || "isolate";        // isolate | pack | off
 
   const dmx   = p.fixtures.filter(f => chans(f) >= 1);
   const noCh  = p.fixtures.filter(f => chans(f) < 1);
   const moves = [];
   const unfit = [];      // wider than a universe, left alone
   const split = [];      // a run too long for one universe, so the chain had to be broken
-  const mixed = [];      // a run whose fixtures name different Art-Net nodes
+  const mixed = [];      // a wire run crossing two Art-Net nodes, so it is cut at the node
 
-  // one run = one universe. Span includes the gaps between its members.
-  const runs = wireRuns(p, chains).map(members => {
-    const names = [...new Set(members.map(f => (f.node||"").trim()))];
-    if(names.length > 1) mixed.push(members);
-    let span = 0;
-    for(const f of members) span += chans(f) + gap;
-    return {members, span: Math.max(0, span - gap),
-            node: names.find(n => n) || "", type: members[0].type,
-            lead: members[0], chain: members.length > 1};
-  });
-
-  // one cable comes from one node output, so a run's node applies to every fixture on it
-  const nodeOf = {};
-  for(const r of runs) for(const f of r.members) nodeOf[f.id] = r.node;
-  const put = (f, u, at) => moves.push({id:f.id, uni:u, addr:at, node:nodeOf[f.id]});
+  // The node on a fixture is the node it is patched to, always. A wire crossing between
+  // two nodes cannot join them, so the run is cut at that boundary and flagged.
+  const runs = [];
+  for(const members of wireRuns(p, mode !== "off")){
+    const perNode = {};
+    for(const f of members){
+      const k = (f.node||"").trim();
+      (perNode[k] = perNode[k]||[]).push(f);
+    }
+    const keys = Object.keys(perNode);
+    if(keys.length > 1) mixed.push(members);
+    for(const k of keys){
+      const mem = perNode[k];
+      let span = 0;
+      for(const f of mem) span += chans(f) + gap;
+      runs.push({members:mem, span:Math.max(0, span - gap), node:k,
+                 type:mem[0].type, lead:mem[0], chain:mem.length > 1});
+    }
+  }
 
   const byNode = {};
   for(const r of runs) (byNode[r.node] = byNode[r.node]||[]).push(r);
@@ -1032,23 +1040,19 @@ function planAutoPatch(p, o){
       // leave the existing patch alone and drop new fixtures into the gaps
       const taken = {};
       for(const f of dmx){
-        if(nodeOf[f.id] !== node) continue;
+        if((f.node||"").trim() !== node) continue;
         const r = fxRange(f);
         if(r) (taken[f.uni] = taken[f.uni]||[]).push(r);
       }
       for(const u in taken) taken[u].sort((a,b)=>a[0]-b[0]);
-      const claim = (u, at, fp) => {
-        (taken[u] = taken[u]||[]).push([at, at+fp-1]);
-        taken[u].sort((a,b)=>a[0]-b[0]);
-      };
-      // every unplaced member of a run has to fit inside one universe
+      const busy = u => (taken[u]||[]).length > 0;
       const tryUni = (u, want, from) => {
         const scratch = (taken[u]||[]).slice();
         const out = [];
         for(const f of want){
           const at = firstFit(scratch, chans(f), from, maxCh, gap);
           if(at == null) return null;
-          out.push({id:f.id, uni:u, addr:at, node:nodeOf[f.id]});
+          out.push({id:f.id, uni:u, addr:at});
           scratch.push([at, at+chans(f)-1]);
           scratch.sort((a,b)=>a[0]-b[0]);
         }
@@ -1061,15 +1065,22 @@ function planAutoPatch(p, o){
         const held = run.members.find(f => f.uni!=null && f.addr!=null);
         let got = null;
         if(held){
-          // the rest of this run is already patched, so join it in that universe
+          // the rest of this run is already patched, so join it there
           got = tryUni(held.uni, want, 1);
           if(!got && run.chain) split.push(run);
         }
         for(let u = startUni; u <= startUni + 512 && !got; u++){
+          // in isolate mode a run may only land in a universe nothing else is using
+          if(mode === "isolate" && busy(u)) continue;
           got = tryUni(u, want, u===startUni ? startAddr : 1);
         }
         if(got){
-          for(const m of got){ moves.push(m); claim(m.uni, m.addr, chans(want.find(f=>f.id===m.id))); }
+          for(const m of got){
+            moves.push(m);
+            const fp = chans(want.find(f => f.id === m.id));
+            (taken[m.uni] = taken[m.uni]||[]).push([m.addr, m.addr+fp-1]);
+            taken[m.uni].sort((a,b)=>a[0]-b[0]);
+          }
         } else unfit.push(...want);
       }
     } else {
@@ -1078,26 +1089,32 @@ function planAutoPatch(p, o){
       for(let i=0; i<want.length; i++){
         const run = want[i];
         if(run.span > maxCh){
-          // the run cannot share one universe - place it anyway and say so
+          // no DMX line carries this much, so the run has to be broken up
           if(run.chain) split.push(run);
           for(const f of run.members){
             if(chans(f) > maxCh){ unfit.push(f); continue; }
             if(cur + chans(f) - 1 > maxCh){ u++; cur = 1; }
-            put(f, u, cur);
+            moves.push({id:f.id, uni:u, addr:cur});
             cur += chans(f) + gap;
           }
+          if(mode === "isolate"){ u++; cur = 1; }
           continue;
         }
-        // start a fresh universe rather than split a type block that would fit whole
-        if(o.keepType && (i===0 || want[i-1].type !== run.type)){
-          let block = 0;
-          for(let j=i; j<want.length && want[j].type===run.type; j++) block += want[j].span + gap;
-          block = Math.max(0, block - gap);
-          if(block <= maxCh && cur + block - 1 > maxCh && cur > 1){ u++; cur = 1; }
+        if(mode === "isolate"){
+          // nothing shares a universe unless a wire runs between them
+          if(i > 0){ u++; cur = 1; }
+        } else {
+          // start a fresh universe rather than split a type block that would fit whole
+          if(o.keepType && (i===0 || want[i-1].type !== run.type)){
+            let block = 0;
+            for(let j=i; j<want.length && want[j].type===run.type; j++) block += want[j].span + gap;
+            block = Math.max(0, block - gap);
+            if(block <= maxCh && cur + block - 1 > maxCh && cur > 1){ u++; cur = 1; }
+          }
+          if(cur + run.span - 1 > maxCh){ u++; cur = 1; }
         }
-        if(cur + run.span - 1 > maxCh){ u++; cur = 1; }
         for(const f of run.members){
-          put(f, u, cur);
+          moves.push({id:f.id, uni:u, addr:cur});
           cur += chans(f) + gap;
         }
       }
@@ -1110,13 +1127,13 @@ function planAutoPatch(p, o){
   for(const f of dmx){
     const m = placed.get(f.id) || (f.uni!=null && f.addr!=null ? {uni:f.uni, addr:f.addr} : null);
     if(!m) continue;
-    const nd = m.node != null ? m.node : (nodeOf[f.id] != null ? nodeOf[f.id] : (f.node||"").trim());
+    const nd = (f.node||"").trim();
     const k = nd+"|"+m.uni;
     const s = rows[k] = rows[k] || {node:nd, uni:m.uni, n:0, ch:0, hi:0};
     s.n++; s.ch += chans(f); s.hi = Math.max(s.hi, m.addr + chans(f) - 1);
   }
   const universes = Object.values(rows).sort((a,b)=> natCmp(a.node,b.node) || (a.uni-b.uni));
-  return {moves, unfit, split, mixed, noCh, universes, runs, maxCh,
+  return {moves, unfit, split, mixed, noCh, universes, runs, maxCh, mode,
           nodes:Object.keys(byNode).length, dmx:dmx.length,
           chained: runs.filter(r => r.chain).length};
 }
@@ -1486,13 +1503,13 @@ document.addEventListener("click", e=>{ if(!e.target.closest("#btnExportMenu")) 
 /* ---- the auto-patch dialog ---- */
 const AP_FIELDS = [["apOrder","order","str"],["apScope","scope","str"],["apMax","maxCh","num"],
                    ["apUni","startUni","num"],["apAddr","startAddr","num"],["apGap","gap","num"],
-                   ["apChains","chains","bool"],["apKeep","keepType","bool"]];
+                   ["apRuns","runs","str"],["apKeep","keepType","bool"]];
 function apToForm(){
   const o = apOpts();
   for(const [id,key,kind] of AP_FIELDS){
     if(kind==="bool") $(id).checked = !!o[key]; else $(id).value = o[key];
   }
-  $("apKeep").closest(".apcheck").hidden = (o.scope==="unpatched");
+  $("apKeep").closest(".apcheck").hidden = (o.scope==="unpatched" || o.runs==="isolate");
 }
 function apFromForm(){
   const o = apOpts();
@@ -1510,7 +1527,7 @@ function fxNames(list, max){
 }
 function renderApPreview(){
   const o = apFromForm();
-  $("apKeep").closest(".apcheck").hidden = (o.scope==="unpatched");
+  $("apKeep").closest(".apcheck").hidden = (o.scope==="unpatched" || o.runs==="isolate");
   const res = planAutoPatch(plan(), o);
   let h = "";
 
@@ -1528,6 +1545,11 @@ function renderApPreview(){
      + (res.nodes>1 ? ' across '+res.nodes+' nodes' : '')
      + (res.chained ? ' \u00B7 <b>'+res.chained+'</b> wire run'+(res.chained===1?"":"s")+' kept whole' : '')
      + '</div>';
+  if(o.runs==="isolate"){
+    h += '<div class="apnote">Nothing shares a universe unless a wire runs between it \u2014 every unwired '
+       + 'fixture gets one of its own. Draw the cable runs to group them, or switch to <b>keep each run '
+       + 'whole, but pack runs together</b>.</div>';
+  }
 
   for(const u of res.universes){
     const pct = Math.min(100, Math.round(u.ch/res.maxCh*100));
@@ -1553,9 +1575,9 @@ function renderApPreview(){
   }
   if(res.mixed.length){
     const n = res.mixed.length;
-    h += '<div class="apnote warn">'+n+' wire run'+(n===1?"":"s")+' name'+(n===1?"s":"")
-       + ' more than one Art-Net node. One cable comes from one node, so the whole run moves onto the '
-       + 'first node it names: '+fxNames(res.mixed.map(m=>m[0]), 3)+'.</div>';
+    h += '<div class="apnote warn">'+n+' wire run'+(n===1?"":"s")+' cross'+(n===1?"es":"")
+       + ' between Art-Net nodes. Each fixture stays on the node you set, so the run is patched as one '
+       + 'piece per node: '+fxNames(res.mixed.map(m=>m[0]), 3)+'.</div>';
   }
   if(res.noCh.length){
     h += '<div class="apnote">'+res.noCh.length+' item'+(res.noCh.length===1?"":"s")
@@ -1579,8 +1601,8 @@ function applyAutoPatch(){
   const res = planAutoPatch(p, apFromForm());
   if(!res.moves.length){ toast("Nothing to patch"); return; }
   const byId = {}; for(const f of p.fixtures) byId[f.id] = f;
-  const before = res.moves.map(m => ({id:m.id, uni:byId[m.id].uni, addr:byId[m.id].addr, node:byId[m.id].node}));
-  for(const m of res.moves){ const f = byId[m.id]; if(f){ f.uni = m.uni; f.addr = m.addr; if(m.node != null) f.node = m.node; } }
+  const before = res.moves.map(m => ({id:m.id, uni:byId[m.id].uni, addr:byId[m.id].addr}));
+  for(const m of res.moves){ const f = byId[m.id]; if(f){ f.uni = m.uni; f.addr = m.addr; } }
   markDirty(); renderAll(); closeAutoPatch();
 
   const nU = res.universes.length;
@@ -1588,7 +1610,7 @@ function applyAutoPatch(){
           + " into "+nU+" universe"+(nU===1?"":"s");
   if(res.unfit.length) msg += ", "+res.unfit.length+" left over";
   toast(msg, {label:"undo", fn:()=>{
-    for(const b of before){ const f = byId[b.id]; if(f){ f.uni = b.uni; f.addr = b.addr; f.node = b.node; } }
+    for(const b of before){ const f = byId[b.id]; if(f){ f.uni = b.uni; f.addr = b.addr; } }
     markDirty(); renderAll(); toast("Auto-patch undone");
   }});
 }
