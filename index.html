@@ -114,6 +114,29 @@
   .libempty{font-family:var(--mono);font-size:11px;color:var(--muted);padding:14px 2px;}
   #libfoot{font-family:var(--mono);font-size:10px;line-height:1.7;color:var(--faint);border-top:1px solid var(--line);padding-top:10px;}
   #libfoot b{color:var(--muted);font-weight:500;}
+
+  #autopatch{position:fixed;inset:0;background:rgba(30,32,36,.35);display:none;align-items:center;justify-content:center;z-index:69;}
+  #autopatch.open{display:flex;}
+  #apbox{background:var(--bg0);border:1px solid var(--line);border-radius:3px;padding:16px 18px 18px;width:min(620px,94vw);max-height:88vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 32px rgba(20,22,26,.16);}
+  #apbox h3{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;}
+  #apbox label{margin:0 0 3px;}
+  .apgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 10px;}
+  .apgrid select,.apgrid input{width:100%;}
+  .apcheck{display:flex!important;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:2px 0 0!important;cursor:pointer;}
+  .apcheck input{width:auto;margin:0;}
+  #appreview{overflow-y:auto;border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:7px;min-height:70px;}
+  .apsum{font-family:var(--mono);font-size:11px;color:var(--ink);}
+  .apsum b{color:var(--accent);font-weight:600;}
+  .aprow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;font-family:var(--mono);font-size:10px;color:var(--muted);}
+  .aprow .apname{color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .aprow .apnum{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .apbar{grid-column:1 / -1;height:5px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+  .apbar i{display:block;height:100%;background:var(--accent);opacity:.75;}
+  .apbar i.full{background:var(--danger);opacity:.8;}
+  .apnote{font-family:var(--mono);font-size:10px;line-height:1.7;color:var(--faint);}
+  .apnote.warn{color:var(--danger);}
+  .apnote b{color:var(--muted);font-weight:500;}
+  @media (max-width:640px){ .apgrid{grid-template-columns:repeat(2,1fr);} }
   #liberr{font-family:var(--mono);font-size:11px;color:var(--danger);}
   #liberr[hidden]{display:none;}
   #inspector input,#inspector select,#inspector textarea{width:100%;}
@@ -267,7 +290,7 @@
     <div id="drawerbar">
       <div id="unisum"></div>
       <div class="spacer"></div>
-      <button id="btnAutopatch" title="Re-address every patched fixture sequentially per node and universe">auto-patch</button>
+      <button id="btnAutopatch" title="Pack fixtures into universes by channel count, 512 per universe">auto-patch</button>
       <button id="btnPng">export png</button>
       <button id="btnSvg">export svg</button>
       <button id="btnCsv">export csv</button>
@@ -293,6 +316,31 @@
   <div id="liblist"></div>
   <div id="libfoot">Saved in this browser on this device only &#8212; nothing is uploaded, and nobody else
     can see these. <b>download</b> a plot to move it to another machine or hand it over.</div>
+</div></div>
+
+<div id="autopatch"><div id="apbox">
+  <h3>Auto-patch</h3>
+  <div class="apgrid">
+    <div><label>Order</label><select id="apOrder">
+      <option value="type">By fixture type</option>
+      <option value="label">By label</option>
+      <option value="position">Across the room</option>
+    </select></div>
+    <div><label>Scope</label><select id="apScope">
+      <option value="all">Re-address everything</option>
+      <option value="unpatched">Fill unpatched only</option>
+    </select></div>
+    <div><label>Chans / universe</label><input id="apMax" type="number" min="1" max="512" step="1"></div>
+    <div><label>First universe</label><input id="apUni" type="number" min="0" max="32767" step="1"></div>
+    <div><label>First address</label><input id="apAddr" type="number" min="1" max="512" step="1"></div>
+    <div><label>Gap between fx</label><input id="apGap" type="number" min="0" max="64" step="1"></div>
+  </div>
+  <label class="apcheck"><input type="checkbox" id="apKeep"> keep each type in one universe where it fits</label>
+  <div id="appreview"></div>
+  <div class="btnrow" style="margin-top:0;">
+    <button id="apApply" class="primary">apply</button>
+    <button id="apClose">close</button>
+  </div>
 </div></div>
 
 <div id="modal"><div id="modalbox">
@@ -864,17 +912,104 @@ function deleteSelected(){
     lastDeleted = null; markDirty(); renderAll();
   }});
 }
-function autoPatch(){
-  const p = plan();
-  const by = {};
-  for(const f of p.fixtures){ if(f.uni==null) continue; const k=patchKey(f); (by[k]=by[k]||[]).push(f); }
-  for(const u in by){
-    by[u].sort((a,b)=>((a.addr==null?9999:a.addr)-(b.addr==null?9999:b.addr)) || a.label.localeCompare(b.label));
-    let cur = 1;
-    for(const f of by[u]){ f.addr = cur; cur += Math.max(f.fp,1); }
+/* ================= auto-patch =================
+   Packs fixtures into universes by channel footprint. A fixture never straddles a
+   universe boundary, each Art-Net node gets its own universe space, and anything
+   that cannot fit is reported rather than silently overflowing past 512. */
+const AP_DEFAULTS = {order:"type", scope:"all", startUni:1, startAddr:1, maxCh:512, gap:0, keepType:true};
+function apOpts(){ prefs.ap = Object.assign({}, AP_DEFAULTS, prefs.ap||{}); return prefs.ap; }
+const chans = f => Math.max(f.fp||0, 0);
+const natCmp = (a,b) => String(a==null?"":a).localeCompare(String(b==null?"":b), undefined, {numeric:true, sensitivity:"base"});
+
+function orderFixtures(list, order){
+  const arr = list.slice();
+  if(order==="label") arr.sort((a,b)=> natCmp(a.label,b.label));
+  else if(order==="position") arr.sort((a,b)=> (Math.round(a.y)-Math.round(b.y)) || (a.x-b.x) || natCmp(a.label,b.label));
+  else arr.sort((a,b)=> (TYPE_ORDER.indexOf(a.type)-TYPE_ORDER.indexOf(b.type)) || natCmp(a.label,b.label));
+  return arr;
+}
+// lowest free address at or after `from` that clears every taken range, or null
+function firstFit(taken, fp, from, maxCh, gap){
+  let cur = Math.max(1, from);
+  for(const r of taken){
+    if(cur + fp - 1 + gap < r[0]) return cur;
+    if(cur <= r[1] + gap) cur = r[1] + 1 + gap;
   }
-  markDirty(); renderAll();
-  toast("Re-addressed every patched fixture sequentially per node and universe");
+  return (cur + fp - 1 <= maxCh) ? cur : null;
+}
+function planAutoPatch(p, o){
+  const maxCh     = Math.max(1, Math.min(512, Math.round(o.maxCh) || 512));
+  const gap       = Math.max(0, Math.min(64, Math.round(o.gap) || 0));
+  const startUni  = Math.max(0, Math.round(o.startUni) || 0);
+  const startAddr = Math.min(maxCh, Math.max(1, Math.round(o.startAddr) || 1));
+
+  const dmx    = p.fixtures.filter(f => chans(f) >= 1);
+  const noCh   = p.fixtures.filter(f => chans(f) < 1);
+  const moves  = [];
+  const unfit  = [];
+
+  const byNode = {};
+  for(const f of dmx){ const k = (f.node||"").trim(); (byNode[k] = byNode[k]||[]).push(f); }
+
+  for(const node of Object.keys(byNode).sort(natCmp)){
+    const list = byNode[node];
+
+    if(o.scope === "unpatched"){
+      // leave the existing patch alone and drop new fixtures into the gaps
+      const taken = {};
+      for(const f of list){
+        const r = fxRange(f);
+        if(r) (taken[f.uni] = taken[f.uni]||[]).push(r);
+      }
+      for(const u in taken) taken[u].sort((a,b)=>a[0]-b[0]);
+      for(const f of orderFixtures(list.filter(f => f.uni==null || f.addr==null), o.order)){
+        const fp = chans(f);
+        let placed = false;
+        for(let u = startUni; u <= startUni + 512 && !placed; u++){
+          const at = firstFit(taken[u]||[], fp, u===startUni ? startAddr : 1, maxCh, gap);
+          if(at != null){
+            moves.push({id:f.id, uni:u, addr:at});
+            (taken[u] = taken[u]||[]).push([at, at+fp-1]);
+            taken[u].sort((a,b)=>a[0]-b[0]);
+            placed = true;
+          }
+        }
+        if(!placed) unfit.push(f);
+      }
+    } else {
+      const want = orderFixtures(list, o.order);
+      let u = startUni, cur = startAddr;
+      for(let i=0; i<want.length; i++){
+        const f = want[i], fp = chans(f);
+        if(fp > maxCh){ unfit.push(f); continue; }
+        // start a fresh universe rather than split a type block that would fit whole
+        if(o.keepType && (i===0 || want[i-1].type !== f.type)){
+          let block = 0;
+          for(let j=i; j<want.length && want[j].type===f.type; j++) block += chans(want[j]) + gap;
+          block = Math.max(0, block - gap);
+          if(block <= maxCh && cur + block - 1 > maxCh && cur > 1){ u++; cur = 1; }
+        }
+        if(cur + fp - 1 > maxCh){ u++; cur = 1; }
+        moves.push({id:f.id, uni:u, addr:cur});
+        cur += fp + gap;
+      }
+    }
+  }
+
+  // summarise the patch these moves would produce
+  const placed = new Map(moves.map(m => [m.id, m]));
+  const rows = {};
+  let changed = 0;
+  for(const f of dmx){
+    const m = placed.get(f.id) || (f.uni!=null && f.addr!=null ? {uni:f.uni, addr:f.addr} : null);
+    if(!m) continue;
+    if(placed.has(f.id) && (f.uni !== m.uni || f.addr !== m.addr)) changed++;
+    const k = (f.node||"").trim()+"|"+m.uni;
+    const s = rows[k] = rows[k] || {node:(f.node||"").trim(), uni:m.uni, n:0, ch:0, hi:0};
+    s.n++; s.ch += chans(f); s.hi = Math.max(s.hi, m.addr + chans(f) - 1);
+  }
+  const universes = Object.values(rows).sort((a,b)=> natCmp(a.node,b.node) || (a.uni-b.uni));
+  return {moves, unfit, noCh, universes, changed, maxCh, nodes:Object.keys(byNode).length, dmx:dmx.length};
 }
 
 /* ================= drag ================= */
@@ -1073,6 +1208,7 @@ window.addEventListener("keydown", e=>{
     const f = sel&&sel.kind==="fixture" && plan().fixtures.find(f=>f.id===sel.id); if(f) duplicateFixture(f); return; }
   if(e.key==="Escape"){
     if($("modal").classList.contains("open")) closeModal();
+    else if($("autopatch").classList.contains("open")) closeAutoPatch();
     else if($("library").classList.contains("open")) closeLibrary();
     else if(wireMode){ setWireMode(false); }
     else { sel=null; renderCanvas(); renderInspector(); renderDrawer(); }
@@ -1238,7 +1374,104 @@ $("exportmenu").addEventListener("click", e=>{
   ({csv:exportCsv, svg:exportSvg, png:exportPng, json:exportJson, import:openImport})[b.getAttribute("data-x")]();
 });
 document.addEventListener("click", e=>{ if(!e.target.closest("#btnExportMenu")) $("exportmenu").hidden = true; });
-$("btnAutopatch").addEventListener("click", autoPatch);
+/* ---- the auto-patch dialog ---- */
+const AP_FIELDS = [["apOrder","order","str"],["apScope","scope","str"],["apMax","maxCh","num"],
+                   ["apUni","startUni","num"],["apAddr","startAddr","num"],["apGap","gap","num"],["apKeep","keepType","bool"]];
+function apToForm(){
+  const o = apOpts();
+  for(const [id,key,kind] of AP_FIELDS){
+    if(kind==="bool") $(id).checked = !!o[key]; else $(id).value = o[key];
+  }
+  $("apKeep").closest(".apcheck").hidden = (o.scope==="unpatched");
+}
+function apFromForm(){
+  const o = apOpts();
+  for(const [id,key,kind] of AP_FIELDS){
+    if(kind==="bool") o[key] = $(id).checked;
+    else if(kind==="num"){ const v = parseInt($(id).value,10); if(!isNaN(v)) o[key] = v; }
+    else o[key] = $(id).value;
+  }
+  savePrefs();
+  return o;
+}
+function fxNames(list, max){
+  const names = list.map(f=>f.label);
+  return esc(names.slice(0,max).join(", ")) + (names.length>max ? " and "+(names.length-max)+" more" : "");
+}
+function renderApPreview(){
+  const o = apFromForm();
+  $("apKeep").closest(".apcheck").hidden = (o.scope==="unpatched");
+  const res = planAutoPatch(plan(), o);
+  let h = "";
+
+  if(!res.dmx){
+    h = '<div class="apnote">Nothing on this plan uses DMX yet. Give a fixture a channel count and it will be patched here.</div>';
+    $("appreview").innerHTML = h;
+    $("apApply").disabled = true;
+    return;
+  }
+
+  const nU = res.universes.length;
+  h += '<div class="apsum"><b>'+res.moves.length+'</b> fixture'+(res.moves.length===1?"":"s")
+     + (o.scope==="unpatched" ? " to patch" : " to re-address")
+     + ' \u00B7 <b>'+nU+'</b> universe'+(nU===1?"":"s")
+     + (res.nodes>1 ? ' across '+res.nodes+' nodes' : '') + '</div>';
+
+  for(const u of res.universes){
+    const pct = Math.min(100, Math.round(u.ch/res.maxCh*100));
+    h += '<div class="aprow">'
+      +  '<span class="apname">'+(u.node ? esc(u.node)+' \u00B7 ' : '')+'U'+u.uni+'</span>'
+      +  '<span class="apnum">'+u.n+' fx \u00B7 '+u.ch+'/'+res.maxCh+' ch \u00B7 top '+pad3(u.hi)+'</span>'
+      +  '<span class="apbar"><i class="'+(pct>=100?"full":"")+'" style="width:'+pct+'%"></i></span>'
+      +  '</div>';
+  }
+
+  if(res.unfit.length){
+    const n = res.unfit.length;
+    h += '<div class="apnote warn">'+n+' fixture'+(n===1?"":"s")+' need'+(n===1?"s":"")+' more than '
+       + res.maxCh+' channels, so there is no universe '+(n===1?"it":"they")+' can fit in. Left as '
+       + (n===1?"it is":"they are")+': '+fxNames(res.unfit, 4)+'.</div>';
+  }
+  if(res.noCh.length){
+    h += '<div class="apnote">'+res.noCh.length+' item'+(res.noCh.length===1?"":"s")
+       + ' carr'+(res.noCh.length===1?"ies":"y")+' no channels and stay'+(res.noCh.length===1?"s":"")
+       + ' unpatched: '+fxNames(res.noCh, 4)+'.</div>';
+  }
+  if(o.scope==="unpatched" && !res.moves.length){
+    h += '<div class="apnote">Every fixture with channels already has an address. Switch to <b>re-address everything</b> to repack them.</div>';
+  }
+  $("appreview").innerHTML = h;
+  $("apApply").disabled = !res.moves.length;
+}
+function openAutoPatch(){
+  apToForm();
+  renderApPreview();
+  $("autopatch").classList.add("open");
+}
+function closeAutoPatch(){ $("autopatch").classList.remove("open"); }
+function applyAutoPatch(){
+  const p = plan();
+  const res = planAutoPatch(p, apFromForm());
+  if(!res.moves.length){ toast("Nothing to patch"); return; }
+  const byId = {}; for(const f of p.fixtures) byId[f.id] = f;
+  const before = res.moves.map(m => ({id:m.id, uni:byId[m.id].uni, addr:byId[m.id].addr}));
+  for(const m of res.moves){ const f = byId[m.id]; if(f){ f.uni = m.uni; f.addr = m.addr; } }
+  markDirty(); renderAll(); closeAutoPatch();
+
+  const nU = res.universes.length;
+  let msg = "Patched "+res.moves.length+" fixture"+(res.moves.length===1?"":"s")
+          + " into "+nU+" universe"+(nU===1?"":"s");
+  if(res.unfit.length) msg += ", "+res.unfit.length+" left over";
+  toast(msg, {label:"undo", fn:()=>{
+    for(const b of before){ const f = byId[b.id]; if(f){ f.uni = b.uni; f.addr = b.addr; } }
+    markDirty(); renderAll(); toast("Auto-patch undone");
+  }});
+}
+for(const [id] of AP_FIELDS) $(id).addEventListener("input", renderApPreview);
+$("apApply").addEventListener("click", applyAutoPatch);
+$("apClose").addEventListener("click", closeAutoPatch);
+$("autopatch").addEventListener("pointerdown", e=>{ if(e.target===$("autopatch")) closeAutoPatch(); });
+$("btnAutopatch").addEventListener("click", openAutoPatch);
 
 /* ================= persistence ================= */
 function setChip(kind){

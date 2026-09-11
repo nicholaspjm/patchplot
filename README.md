@@ -13,7 +13,8 @@ A single-file lighting plot planner for clubs and small venues. Drafting-style p
 - Wire tool: click fixtures one after another to chain cable runs, mark any wire wireless
 - Named plot files: new, open, rename, save as a copy, delete — all kept in the browser, with autosave
 - Multiple plans per file, with duplicate, editable room size and dashed zones
-- Patch list with per node/universe totals and one-click sequential auto-patch
+- Auto-patch: packs fixtures into universes by channel count, respecting a per-universe limit, with a live preview before you commit and one-click undo after
+- Patch list with per node/universe totals
 - Exports: CSV patch sheet, print-style SVG plot, full project JSON (with import)
 
 ## Use
@@ -30,6 +31,24 @@ Work is organised into named **plots**, each holding one or more plans. The **fi
 
 Every change autosaves to the browser a moment after you stop, and the button at the top right shows whether
 the current state is on disk.
+
+### Auto-patch
+
+**patch list › auto-patch** works out addresses for you. It packs each fixture into a universe by its channel
+count, never lets one straddle a universe boundary, gives every Art-Net node its own universe space, and
+skips anything with no channels (speakers, lasers left at 0, power drops).
+
+- **Order** — group by fixture type, sort by label, or run across the room front to back
+- **Scope** — *re-address everything*, or *fill unpatched only*, which leaves the existing patch alone and
+  drops new fixtures into the gaps in it
+- **Chans / universe** — 512 by default; lower it to leave headroom at the top of each universe
+- **First universe / first address** — start somewhere other than U1 @ 001
+- **Gap between fixtures** — leave spare channels between units for later expansion
+- **Keep each type in one universe** — starts a fresh universe rather than split a block of identical
+  fixtures, when the whole block would fit in one
+
+The preview shows what each universe will hold before you apply, and anything that cannot fit is named
+rather than quietly pushed past 512. After applying, the toast offers **undo**.
 
 ### Where your work is stored
 
